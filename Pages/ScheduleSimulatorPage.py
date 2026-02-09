@@ -9,6 +9,7 @@ class ScheduleSimulatorPage:
         self.simulate_date_button = (By.ID, 'simulate-date-btn')  # Placeholder locator
         self.simulate_interval_button = (By.ID, 'simulate-interval-btn')  # Placeholder locator
         self.transfer_action_msg = (By.CSS_SELECTOR, 'div.transfer-action-msg')  # Placeholder locator
+        self.performance_message = (By.CSS_SELECTOR, 'div.performance-msg')  # Placeholder locator
 
     def simulate_specific_date(self, date_str):
         simulate_btn = WebDriverWait(self.driver, 10).until(
@@ -29,19 +30,13 @@ class ScheduleSimulatorPage:
         )
         return 'executed' in action_msg.text.lower()
 
-    def simulate_deposit_and_verify_transfer(self, deposit_amount, expected_transfer):
-        # Simulate deposit action
-        deposit_input = WebDriverWait(self.driver, 10).until(
-            EC.visibility_of_element_located((By.ID, 'deposit-amount-input'))
+    def trigger_evaluation_for_all_rules(self):
+        """
+        Triggers evaluation for all loaded rules simultaneously.
+        """
+        self.simulate_recurring_interval()
+        # Optionally verify performance threshold
+        perf_msg = WebDriverWait(self.driver, 30).until(
+            EC.visibility_of_element_located(self.performance_message)
         )
-        deposit_input.clear()
-        deposit_input.send_keys(str(deposit_amount))
-        simulate_btn = WebDriverWait(self.driver, 10).until(
-            EC.element_to_be_clickable((By.ID, 'simulate-deposit-btn'))
-        )
-        simulate_btn.click()
-        # Verify transfer
-        transfer_msg = WebDriverWait(self.driver, 10).until(
-            EC.visibility_of_element_located((By.CSS_SELECTOR, 'div.transfer-action-msg'))
-        )
-        return str(expected_transfer) in transfer_msg.text
+        assert 'performance threshold' in perf_msg.text.lower(), "Performance threshold not met!"
