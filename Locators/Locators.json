@@ -1,23 +1,34 @@
 {
-  "LoginPage": {
-    "url": "https://example-ecommerce.com/login",
-    "inputs": {
-      "emailField": "id=login-email",
-      "passwordField": "id=login-password",
-      "rememberMeCheckbox": "id=remember-me"
+  "RuleConfigurationPage": {
+    "ruleForm": {
+      "ruleIdInput": "id=rule-id-field",
+      "ruleNameInput": "name=rule-name",
+      "saveRuleButton": "button[data-testid='save-rule-btn']"
     },
-    "buttons": {
-      "loginSubmit": "id=login-submit",
-      "forgotPasswordLink": "a.forgot-password-link"
+    "triggers": {
+      "triggerTypeDropdown": "id=trigger-type-select",
+      "datePicker": "input[type='date']",
+      "recurringIntervalInput": "id=interval-value",
+      "afterDepositToggle": "id=trigger-after-deposit"
     },
-    "messages": {
-      "errorMessage": "div.alert-danger",
-      "validationError": ".invalid-feedback",
-      "emptyFieldPrompt": "text='Mandatory fields are required'"
+    "conditions": {
+      "addConditionBtn": "id=add-condition-link",
+      "conditionTypeDropdown": "select.condition-type",
+      "balanceThresholdInput": "input[name='balance-limit']",
+      "transactionSourceDropdown": "id=source-provider-select",
+      "operatorDropdown": "css=.condition-operator-select"
     },
-    "postLogin": {
-      "dashboardHeader": "h1.dashboard-title",
-      "userProfileIcon": ".user-profile-name"
+    "actions": {
+      "actionTypeDropdown": "id=action-type-select",
+      "transferAmountInput": "name=fixed-amount",
+      "percentageInput": "id=deposit-percentage",
+      "destinationAccountInput": "id=target-account-id"
+    },
+    "validation": {
+      "jsonSchemaEditor": "css=.monaco-editor",
+      "validateSchemaBtn": "id=btn-verify-json",
+      "successMessage": ".alert-success",
+      "schemaErrorMessage": "[data-testid='error-feedback-text']"
     }
   }
 }
