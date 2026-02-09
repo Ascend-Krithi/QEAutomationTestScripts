@@ -2,7 +2,7 @@
 RuleConfigurationPage.py
 
 Selenium PageClass for Rule Configuration Page.
-Handles rule schema creation, validation, and metadata operations as per TC_SCRUM158_03 and TC_SCRUM158_04.
+Handles rule schema creation, validation, and metadata operations as per TC_SCRUM158_03, TC_SCRUM158_04, TC_SCRUM158_05, and TC_SCRUM158_06.
 
 Author: Automation Orchestration Agent
 Created: 2024-06-XX
@@ -161,6 +161,36 @@ class RuleConfigurationPage:
         if not error:
             raise Exception("Expected schema error, but none found.")
 
+    def submit_rule_with_invalid_trigger(self, rule_id, rule_name, schema_text):
+        """
+        TC_SCRUM158_05:
+        - Prepare rule schema with invalid trigger value.
+        - Submit schema.
+        - Validate that error message is shown for invalid trigger.
+        """
+        self.enter_rule_id(rule_id)
+        self.enter_rule_name(rule_name)
+        self.enter_json_schema(schema_text)
+        self.validate_schema()
+        error = self.get_schema_error_message()
+        if not error or "invalid value" not in error.lower():
+            raise Exception("Expected error about invalid trigger value, got: " + str(error))
+
+    def submit_rule_with_incomplete_condition(self, rule_id, rule_name, schema_text):
+        """
+        TC_SCRUM158_06:
+        - Prepare rule schema with condition missing required parameters.
+        - Submit schema.
+        - Validate that error message is shown for incomplete condition.
+        """
+        self.enter_rule_id(rule_id)
+        self.enter_rule_name(rule_name)
+        self.enter_json_schema(schema_text)
+        self.validate_schema()
+        error = self.get_schema_error_message()
+        if not error or "incomplete condition" not in error.lower():
+            raise Exception("Expected error about incomplete condition, got: " + str(error))
+
     def retrieve_rule_metadata(self, rule_id):
         """
         Placeholder for API interaction to retrieve rule and verify metadata.
@@ -174,7 +204,7 @@ class RuleConfigurationPage:
 Documentation:
 
 Executive Summary:
-This PageClass automates rule schema creation, validation, and metadata handling for the Rule Configuration Page, supporting test cases TC_SCRUM158_03 and TC_SCRUM158_04. It leverages locators from Locators.json and provides robust methods for end-to-end Selenium automation.
+This PageClass automates rule schema creation, validation, and metadata handling for the Rule Configuration Page, supporting test cases TC_SCRUM158_03, TC_SCRUM158_04, TC_SCRUM158_05, and TC_SCRUM158_06. It leverages locators from Locators.json and provides robust methods for end-to-end Selenium automation.
 
 Implementation Guide:
 - Place this file in the Pages folder.
@@ -182,6 +212,8 @@ Implementation Guide:
 - Use composite methods for test case automation:
     - create_rule_with_metadata() for valid schema with metadata.
     - create_rule_missing_trigger() for invalid schema missing trigger.
+    - submit_rule_with_invalid_trigger() for invalid trigger value.
+    - submit_rule_with_incomplete_condition() for incomplete condition.
 - Extend retrieve_rule_metadata() with API calls for full validation.
 
 Quality Assurance Report:
