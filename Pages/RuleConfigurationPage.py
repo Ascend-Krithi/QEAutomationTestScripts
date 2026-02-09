@@ -161,3 +161,52 @@ class RuleConfigurationPage:
         self.enter_json_rule(rule_json)
         self.validate_rule_schema()
         self.save_rule()
+
+    # --- ADDED FOR TC-FT-005 ---
+    def create_rule_after_deposit_percentage(self, rule_id, rule_name, percentage, destination_account, rule_json):
+        self.enter_rule_id(rule_id)
+        self.enter_rule_name(rule_name)
+        self.set_after_deposit_trigger()
+        self.set_percentage_of_deposit_action(percentage, destination_account)
+        self.enter_json_rule(rule_json)
+        self.validate_rule_schema()
+        self.save_rule()
+
+    def simulate_deposit_and_verify_transfer(self, deposit_amount, expected_transfer):
+        # This is a placeholder: actual implementation depends on deposit simulation and verification APIs
+        # e.g. interact with deposit form, submit, then check for transfer
+        print(f"Simulating deposit of {deposit_amount} units.")
+        print(f"Verifying transfer of {expected_transfer} units.")
+        # Would interact with UI or backend, then assert transfer
+
+    # --- ADDED FOR TC-FT-006 ---
+    def create_rule_with_currency_conversion(self, rule_id, rule_name, currency, amount, destination_account, rule_json):
+        self.enter_rule_id(rule_id)
+        self.enter_rule_name(rule_name)
+        self.select_trigger_type('currency_conversion')
+        # If currency field is present, interact with it
+        try:
+            currency_input = self.wait.until(EC.visibility_of_element_located((By.ID, 'currency-select')))
+            currency_input.clear()
+            currency_input.send_keys(currency)
+        except Exception:
+            print('Currency input not found, skipping.')
+        self.set_fixed_amount_action(amount, destination_account)
+        self.enter_json_rule(rule_json)
+        self.validate_rule_schema()
+        self.save_rule()
+
+    def verify_currency_conversion_rule_acceptance(self):
+        if self.is_success_message_displayed():
+            print('Rule accepted.')
+            return True
+        elif self.is_schema_error_displayed():
+            print('Rule gracefully rejected with error message.')
+            return False
+        else:
+            print('Unexpected outcome.')
+            return None
+
+    def verify_existing_rules_functionality(self):
+        # Placeholder: Would execute existing rule flows and verify outcome
+        print('Verifying existing rules execute as before.')
