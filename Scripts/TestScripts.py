@@ -105,3 +105,49 @@ def test_TC_LOGIN_004(driver):
     else:
         error_msg = login_page.get_error_message()
         assert error_msg is not None and error_msg != '', 'Error message should be displayed for invalid credentials'
+
+# Test Case TC_LOGIN_005: Special characters in credentials
+
+def test_TC_LOGIN_005(driver):
+    login_page = LoginPage(driver)
+    login_page.navigate_to_login('https://example.com/login')
+    # Step 1: Navigate to login page
+    assert driver.current_url.endswith('/login')
+    # Step 2: Enter credentials with special characters
+    special_username = 'special_user!@#$/example.com'
+    special_password = 'P@$$w0rd!#'
+    login_page.enter_special_characters_credentials(special_username, special_password)
+    # Step 3: Click Login
+    login_page.click_login()
+    # Step 4: Assert fields accept special character input and login/error behavior
+    assert login_page.are_special_characters_accepted(special_username, special_password), 'Fields should accept special characters'
+    if login_page.is_login_successful():
+        assert True, 'User should be logged in with special character credentials'
+    else:
+        error_msg = login_page.get_error_message()
+        assert error_msg is not None and error_msg != '', 'Error message should be displayed for invalid credentials'
+
+# Test Case TC_LOGIN_006: "Remember Me" session persistence
+
+def test_TC_LOGIN_006(driver):
+    login_page = LoginPage(driver)
+    login_page.navigate_to_login('https://example.com/login')
+    # Step 1: Navigate to login page
+    assert driver.current_url.endswith('/login')
+    # Step 2: Enter valid credentials and check 'Remember Me'
+    login_page.enter_username('user@example.com')
+    login_page.enter_password('ValidPassword123')
+    login_page.check_remember_me()
+    assert login_page.is_remember_me_selected(), "'Remember Me' checkbox should be selected"
+    # Step 3: Click Login
+    login_page.click_login()
+    dashboard = DashboardPage(driver)
+    assert dashboard.is_dashboard_displayed(), 'Dashboard should be displayed after login'
+    # Step 4: Close and reopen browser, assert session persists
+    driver.quit()
+    new_driver = webdriver.Chrome()
+    new_driver.implicitly_wait(10)
+    dashboard_new = DashboardPage(new_driver)
+    new_driver.get('https://example.com/dashboard')
+    assert dashboard_new.is_dashboard_displayed(), 'Session should persist with "Remember Me" enabled'
+    new_driver.quit()
