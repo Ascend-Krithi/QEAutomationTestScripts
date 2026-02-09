@@ -3,6 +3,7 @@ from Pages.RuleEnginePage import RuleEnginePage
 from Pages.LoginPage import LoginPage
 from Pages.RulePage import RulePage
 from Pages.TransactionPage import TransactionPage
+from Pages.RuleDefinitionPage import RuleDefinitionPage
 
 class TestLoginFunctionality:
     def __init__(self, page):
@@ -102,3 +103,57 @@ class TestRuleAndTransaction:
         )
         error_msg = self.rule_page.get_error_message()
         assert error_msg is not None and ('unsupported' in error_msg.lower() or 'invalid' in error_msg.lower())
+
+# --- New test methods for TC-FT-005 and TC-FT-006 ---
+class TestRuleDefinitionAndTransaction:
+    def __init__(self, driver):
+        self.driver = driver
+        self.rule_definition_page = RuleDefinitionPage(driver)
+        self.transaction_page = TransactionPage(driver)
+        self.rule_page = RulePage(driver)
+
+    def test_define_percentage_rule_and_simulate_deposit(self):
+        """
+        Test Case TC-FT-005:
+        1. Define a rule for 10% of deposit action.
+        2. Simulate deposit of 500 units.
+        3. Verify transfer of 50 units is executed.
+        """
+        # Step 1: Define percentage rule
+        self.rule_definition_page.navigate_to_rule_definition()
+        self.rule_definition_page.define_rule(
+            trigger={'type': 'after_deposit'},
+            action={'type': 'percentage_of_deposit', 'percentage': 10},
+            conditions=[]
+        )
+        self.rule_definition_page.submit_rule()
+        assert self.rule_definition_page.is_rule_accepted()
+
+        # Step 2: Simulate deposit
+        self.transaction_page.simulate_deposit(balance=0, deposit=500, source='test_source')
+        # Step 3: Verify transfer of 50 units
+        assert self.transaction_page.verify_percentage_transfer(deposit=500, expected_percentage=10)
+
+    def test_define_future_rule_type_and_verify_existing_rules(self):
+        """
+        Test Case TC-FT-006:
+        1. Define a rule with new future rule type 'currency_conversion'.
+        2. Verify system gracefully rejects and existing rules execute as before.
+        """
+        # Step 1: Define rule with future type
+        self.rule_definition_page.navigate_to_rule_definition()
+        self.rule_definition_page.define_rule(
+            trigger={'type': 'currency_conversion', 'currency': 'EUR'},
+            action={'type': 'fixed_amount', 'amount': 100},
+            conditions=[]
+        )
+        self.rule_definition_page.submit_rule()
+        error_msg = self.rule_definition_page.handle_unknown_rule_type(
+            trigger={'type': 'currency_conversion', 'currency': 'EUR'},
+            action={'type': 'fixed_amount', 'amount': 100}
+        )
+        assert error_msg == "Unknown rule type. Rule not accepted, but existing rules unaffected."
+
+        # Step 2: Verify existing rules still execute
+        result = self.rule_page.verify_existing_rules()
+        assert result == "Existing rules executed successfully."
