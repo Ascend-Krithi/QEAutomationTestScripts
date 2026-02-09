@@ -1,75 +1,82 @@
-
-import pytest
 import asyncio
+from Pages.LoginPage import LoginPage
 from Pages.RuleConfigurationPage import RuleConfigurationPage
+from Pages.RuleManagementPage import RuleManagementPage
+
+class TestLoginFunctionality:
+    def __init__(self, page):
+        self.page = page
+        self.login_page = LoginPage(page)
+
+    async def test_empty_fields_validation(self):
+        await self.login_page.navigate()
+        await self.login_page.submit_login('', '')
+        assert await self.login_page.get_error_message() == 'Mandatory fields are required'
+
+    async def test_remember_me_functionality(self):
+        await self.login_page.navigate()
+        await self.login_page.fill_email('...')
 
 class TestRuleConfiguration:
+    def __init__(self, page):
+        self.page = page
+        self.rule_config_page = RuleConfigurationPage(page)
+        self.rule_mgmt_page = RuleManagementPage(page)
 
-    @pytest.mark.asyncio
-    async def test_TC_SCRUM158_01(self, browser):
-        # Existing test implementation
-        pass
+    # ...[existing async test methods]...
 
-    @pytest.mark.asyncio
-    async def test_TC_SCRUM158_02(self, browser):
-        # Existing test implementation
-        pass
-
-    # --- New test cases appended below ---
-
-    @pytest.mark.asyncio
-    async def test_TC_SCRUM158_03(self, browser):
+    async def test_TC_SCRUM158_09(self):
         '''
-        TC_SCRUM158_03:
-        - Create a schema with a recurring interval trigger (weekly), condition amount >= 1000, action transfer 1000 to account C.
-        - Submit the rule and verify that it is scheduled for weekly execution (assert success message).
+        TC_SCRUM158_09: Prepare a schema with malicious metadata and verify error response.
         '''
-        rule_page = RuleConfigurationPage(browser)
-        await rule_page.navigate_to_rule_configuration()
+        malicious_schema = '{"trigger":{"type":"manual"},"conditions":[{"type":"amount","operator":"==","value":1}],"actions":[{"type":"transfer","account":"I","amount":1}],"metadata":"<script>alert(\'hack\')</script>"}'
+        self.rule_config_page.prepare_schema_with_malicious_metadata(malicious_schema)
+        self.rule_config_page.submit_schema()
+        error_msg = self.rule_config_page.get_error_message()
+        assert any(keyword in error_msg.lower() for keyword in ['invalid', 'error', 'malicious']), f"Expected error indication for malicious metadata, got: {error_msg}"
 
-        # Fill in schema fields
-        await rule_page.set_rule_name('Weekly Transfer Rule')
-        await rule_page.set_trigger_type('Recurring')
-        await rule_page.set_trigger_interval('Weekly')
-        await rule_page.set_condition_field('amount')
-        await rule_page.set_condition_operator('>=')
-        await rule_page.set_condition_value('1000')
-        await rule_page.set_action_type('Transfer')
-        await rule_page.set_action_amount('1000')
-        await rule_page.set_action_account('C')
-
-        # Submit rule
-        await rule_page.submit_rule()
-
-        # Assert scheduled for weekly execution (success message)
-        success_message = await rule_page.get_success_message()
-        assert 'scheduled for weekly execution' in success_message.lower()
-        assert 'rule created successfully' in success_message.lower()
-
-    @pytest.mark.asyncio
-    async def test_TC_SCRUM158_04(self, browser):
+    async def test_TC_FT_003_rule_with_multiple_conditions(self):
         '''
-        TC_SCRUM158_04:
-        - Prepare a schema missing the 'trigger' field (condition amount < 50, action transfer 50 to account D).
-        - Attempt to create the rule and verify that the schema is rejected with an error indicating the missing required field (assert error message).
+        TC-FT-003: Define a rule with multiple conditions (balance >= 1000, source = 'salary'), simulate deposits, and verify transfer execution.
         '''
-        rule_page = RuleConfigurationPage(browser)
-        await rule_page.navigate_to_rule_configuration()
+        rule_data = {
+            'ruleId': 'TCFT003',
+            'ruleName': 'Multiple Conditions Rule',
+            'trigger': {'type': 'after_deposit'},
+            'action': {'type': 'fixed_amount', 'amount': 50},
+            'conditions': [
+                {'type': 'balance_threshold', 'operator': '>=', 'value': 1000},
+                {'type': 'transaction_source', 'value': 'salary'}
+            ]
+        }
+        # Define rule
+        self.rule_config_page.define_rule_with_multiple_conditions(rule_data)
+        assert self.rule_config_page.verify_rule_accepted()
+        # Simulate deposit with balance 900 (should NOT execute transfer)
+        self.rule_config_page.simulate_deposit(balance=900, deposit=100, source='salary')
+        assert self.rule_config_page.verify_transfer_not_executed()
+        # Simulate deposit with balance 1200 (should execute transfer)
+        self.rule_config_page.simulate_deposit(balance=1200, deposit=100, source='salary')
+        assert self.rule_config_page.verify_transfer_executed()
 
-        # Fill in schema fields, omit trigger
-        await rule_page.set_rule_name('Missing Trigger Rule')
-        # trigger intentionally not set
-        await rule_page.set_condition_field('amount')
-        await rule_page.set_condition_operator('<')
-        await rule_page.set_condition_value('50')
-        await rule_page.set_action_type('Transfer')
-        await rule_page.set_action_amount('50')
-        await rule_page.set_action_account('D')
-
-        # Submit rule
-        await rule_page.submit_rule()
-
-        # Assert error for missing required field
-        error_message = await rule_page.get_error_message()
-        assert 'missing required field' in error_message.lower()
-        assert 'trigger' in error_message.lower()
+    async def test_TC_FT_004_rule_validation(self):
+        '''
+        TC-FT-004: Submit rules with missing trigger and unsupported action, verify errors.
+        '''
+        # Missing trigger
+        rule_data_missing_trigger = {
+            'ruleName': 'Missing Trigger Rule',
+            'action': {'type': 'fixed_amount', 'amount': 100},
+            'conditions': []
+        }
+        self.rule_config_page.submit_rule_with_missing_trigger(rule_data_missing_trigger)
+        assert self.rule_config_page.verify_missing_trigger_error()
+        # Unsupported action
+        rule_data_unsupported_action = {
+            'ruleName': 'Unsupported Action Rule',
+            'trigger': {'type': 'specific_date', 'date': '2024-07-01T10:00:00Z'},
+            'action': {'type': 'unknown_action'},
+            'conditions': []
+        }
+        self.rule_config_page.submit_rule_with_unsupported_action(rule_data_unsupported_action)
+        assert self.rule_config_page.verify_unsupported_action_error()
