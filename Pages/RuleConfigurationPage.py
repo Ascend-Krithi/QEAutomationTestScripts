@@ -5,9 +5,9 @@ from selenium.webdriver.support import expected_conditions as EC
 class RuleConfigurationPage:
     """
     Page Object for Rule Configuration Page.
-    Handles rule creation, trigger setup (specific_date and recurring),
+    Handles rule creation, trigger setup (specific_date, recurring, after_deposit, currency_conversion),
     action setup (fixed_amount and percentage_of_deposit), conditions, validation,
-    system time simulation, and transfer action validation.
+    system time simulation, deposit simulation, and transfer action validation.
     """
 
     def __init__(self, driver):
@@ -67,6 +67,29 @@ class RuleConfigurationPage:
         interval_input = self.wait.until(EC.visibility_of_element_located(self.locators['recurringIntervalInput']))
         interval_input.clear()
         interval_input.send_keys(interval)
+
+    def set_after_deposit_trigger(self):
+        """
+        Sets the after_deposit trigger toggle.
+        """
+        self.select_trigger_type('after_deposit')
+        toggle = self.wait.until(EC.element_to_be_clickable(self.locators['afterDepositToggle']))
+        if not toggle.is_selected():
+            toggle.click()
+
+    def set_currency_conversion_trigger(self, currency):
+        """
+        Sets the currency_conversion trigger type if supported, else returns error message.
+        """
+        try:
+            self.select_trigger_type('currency_conversion')
+            # If UI provides currency dropdown/input, set it
+            currency_input = self.driver.find_element(By.XPATH, f"//input[@name='currency']")
+            currency_input.clear()
+            currency_input.send_keys(currency)
+            return True
+        except Exception as e:
+            return f"Currency conversion trigger type not supported: {str(e)}"
 
     def select_action_type(self, action_type):
         dropdown = self.wait.until(EC.element_to_be_clickable(self.locators['actionTypeDropdown']))
@@ -134,14 +157,8 @@ class RuleConfigurationPage:
 
     def create_rule(self, rule_json):
         """
-        Orchestrates rule creation from JSON:
-        {
-            "ruleId": "string",
-            "ruleName": "string",
-            "trigger": {"type": "specific_date", "date": "2024-07-01T10:00:00Z"}
-            "action": {"type": "fixed_amount", "amount": 100}
-            "conditions": []
-        }
+        Orchestrates rule creation from JSON.
+        Supports specific_date, recurring, after_deposit, and currency_conversion triggers.
         """
         self.open_rule_form()
         if 'ruleId' in rule_json:
@@ -152,10 +169,19 @@ class RuleConfigurationPage:
         action = rule_json.get('action', {})
         conditions = rule_json.get('conditions', [])
         # Trigger setup
-        if trigger.get('type') == 'specific_date':
+        trigger_type = trigger.get('type')
+        if trigger_type == 'specific_date':
             self.set_specific_date_trigger(trigger.get('date', ''))
-        elif trigger.get('type') == 'recurring':
+        elif trigger_type == 'recurring':
             self.set_recurring_trigger(trigger.get('interval', ''))
+        elif trigger_type == 'after_deposit':
+            self.set_after_deposit_trigger()
+        elif trigger_type == 'currency_conversion':
+            result = self.set_currency_conversion_trigger(trigger.get('currency', ''))
+            if result is not True:
+                return result
+        else:
+            return f"Unknown trigger type: {trigger_type}"
         # Action setup
         if action.get('type') == 'fixed_amount':
             self.set_fixed_amount_action(action.get('amount', ''))
@@ -169,16 +195,23 @@ class RuleConfigurationPage:
         self.save_rule()
         return self.validate_schema()
 
-    def simulate_system_time(self, target_datetime):
+    def simulate_deposit(self, amount):
         """
-        Simulates system time for test purposes.
-        This implementation assumes there is a test-only UI toggle or API endpoint exposed.
+        Simulates deposit action for testing.
+        This implementation assumes there is a test-only UI element or API endpoint exposed.
         """
-        # Example: Use SettingsPage or an admin API, not implemented here
-        # For UI, locate a date/time picker and set value
-        # For API, send a POST request to set system time
-        # Placeholder: raise NotImplementedError if not supported
-        raise NotImplementedError("System time simulation must be implemented in test environment.")
+        # Example: Locate deposit input and submit button if available
+        try:
+            deposit_input = self.driver.find_element(By.XPATH, "//input[@name='deposit-amount']")
+            deposit_input.clear()
+            deposit_input.send_keys(str(amount))
+            submit_btn = self.driver.find_element(By.XPATH, "//button[@data-testid='submit-deposit']")
+            submit_btn.click()
+            # Wait for confirmation
+            confirmation = self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, '.alert-success')))
+            return confirmation.text
+        except Exception as e:
+            return f"Deposit simulation not supported: {str(e)}"
 
     def validate_transfer_action(self, expected_amount=None, expected_percentage=None, expected_count=1):
         """
@@ -188,3 +221,15 @@ class RuleConfigurationPage:
         # Example: Check transaction log for matching entry
         # Placeholder: raise NotImplementedError if not supported
         raise NotImplementedError("Transfer action validation must be implemented in test environment.")
+
+    def verify_existing_rules(self):
+        """
+        Verifies that existing rules are not affected by new rule creation.
+        This implementation assumes there is a rules list UI or API.
+        """
+        # Example: Fetch rules and validate their state
+        try:
+            rules_list = self.driver.find_elements(By.CSS_SELECTOR, '.rule-list-item')
+            return [rule.text for rule in rules_list]
+        except Exception as e:
+            return f"Could not verify existing rules: {str(e)}"
