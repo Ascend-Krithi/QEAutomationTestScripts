@@ -6,10 +6,10 @@ from selenium.webdriver.support import expected_conditions as EC
 class ScheduleSimulatorPage:
     def __init__(self, driver):
         self.driver = driver
-        self.simulate_date_button = (By.ID, 'simulate-date-btn')  # Placeholder locator
-        self.simulate_interval_button = (By.ID, 'simulate-interval-btn')  # Placeholder locator
-        self.transfer_action_msg = (By.CSS_SELECTOR, 'div.transfer-action-msg')  # Placeholder locator
-        self.performance_message = (By.CSS_SELECTOR, 'div.performance-msg')  # Placeholder locator
+        self.simulate_date_button = (By.ID, 'simulate-date-btn')
+        self.simulate_interval_button = (By.ID, 'simulate-interval-btn')
+        self.transfer_action_msg = (By.CSS_SELECTOR, 'div.transfer-action-msg')
+        self.performance_message = (By.CSS_SELECTOR, 'div.performance-msg')
 
     def simulate_specific_date(self, date_str):
         simulate_btn = WebDriverWait(self.driver, 10).until(
@@ -31,11 +31,7 @@ class ScheduleSimulatorPage:
         return 'executed' in action_msg.text.lower()
 
     def trigger_evaluation_for_all_rules(self):
-        """
-        Triggers evaluation for all loaded rules simultaneously.
-        """
         self.simulate_recurring_interval()
-        # Optionally verify performance threshold
         perf_msg = WebDriverWait(self.driver, 30).until(
             EC.visibility_of_element_located(self.performance_message)
         )
