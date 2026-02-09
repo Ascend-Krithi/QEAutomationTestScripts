@@ -63,3 +63,27 @@ class TestRuleConfiguration(unittest.TestCase):
         # UI assertion for success
         success = True # Replace with actual validation if available
         self.assertTrue(success, "Rule should be created and contain all conditions and actions.")
+
+    # --- Appended for TC_SCRUM158_05 ---
+    def test_TC_SCRUM158_05_unsupported_trigger_type(self):
+        """
+        TC_SCRUM158_05:
+        1. Prepare a schema with unsupported trigger type ('unsupported_type').
+        2. Submit the schema and observe error response.
+        Acceptance Criteria: Schema is rejected with error about unsupported type. Rule is not created; error message returned.
+        """
+        schema_text = '{"trigger": {"type": "unsupported_type"}, "conditions": [{"type": "amount", "operator": "<", "value": 10}], "actions": [{"type": "transfer", "account": "E", "amount": 10}]}'
+        result_message = self.rule_page.submit_and_validate_schema(schema_text)
+        self.assertIn("unsupported", result_message.lower(), "Schema with unsupported trigger type should be rejected with error message.")
+
+    # --- Appended for TC_SCRUM158_06 ---
+    def test_TC_SCRUM158_06_maximum_conditions_actions(self):
+        """
+        TC_SCRUM158_06:
+        1. Prepare a schema with maximum allowed (10) conditions and actions.
+        2. Submit the schema and verify storage of all conditions/actions.
+        Acceptance Criteria: Rule is accepted and all conditions/actions are stored. Rule contains maximum allowed items.
+        """
+        schema_text = '{"trigger": {"type": "manual"}, "conditions": [{"type": "amount", "operator": "==", "value": 1}, {"type": "amount", "operator": "==", "value": 2}, {"type": "amount", "operator": "==", "value": 3}, {"type": "amount", "operator": "==", "value": 4}, {"type": "amount", "operator": "==", "value": 5}, {"type": "amount", "operator": "==", "value": 6}, {"type": "amount", "operator": "==", "value": 7}, {"type": "amount", "operator": "==", "value": 8}, {"type": "amount", "operator": "==", "value": 9}, {"type": "amount", "operator": "==", "value": 10}], "actions": [{"type": "transfer", "account": "F1", "amount": 1}, {"type": "transfer", "account": "F2", "amount": 2}, {"type": "transfer", "account": "F3", "amount": 3}, {"type": "transfer", "account": "F4", "amount": 4}, {"type": "transfer", "account": "F5", "amount": 5}, {"type": "transfer", "account": "F6", "amount": 6}, {"type": "transfer", "account": "F7", "amount": 7}, {"type": "transfer", "account": "F8", "amount": 8}, {"type": "transfer", "account": "F9", "amount": 9}, {"type": "transfer", "account": "F10", "amount": 10}]}'
+        result_message = self.rule_page.submit_and_validate_schema(schema_text)
+        self.assertIn("success", result_message.lower(), "Rule with maximum allowed conditions/actions should be accepted and stored.")
