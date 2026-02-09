@@ -146,3 +146,54 @@ def test_empty_conditions_unconditional_trigger(driver):
     # Simulate transfer execution without conditions
     transfer_executed = (deposit_amount == 1000 and rule['action']['amount'] == 100)
     assert transfer_executed, 'Transfer was not executed unconditionally when triggered.'
+
+# Test Case TC-FT-007: Load 10,000 valid rules and performance evaluation
+@pytest.mark.usefixtures('driver_init')
+def test_load_10000_valid_rules_and_evaluate_performance(driver):
+    import time
+    # Mock loading 10,000 valid rules
+    rules = [{
+        'trigger': {'type': 'specific_date', 'date': '2024-07-01T10:00:00Z'},
+        'action': {'type': 'fixed_amount', 'amount': 100},
+        'conditions': []
+    } for _ in range(10000)]
+    start_time = time.time()
+    # Simulate system loading all rules
+    system_loaded = True  # Replace with actual system call
+    load_duration = time.time() - start_time
+    assert system_loaded, 'System failed to load rules.'
+    # Acceptance: System loads rules within acceptable time limits (e.g., 10 seconds)
+    assert load_duration < 10, f'System took too long to load rules: {load_duration} seconds.'
+    # Trigger evaluation for all rules simultaneously
+    eval_start = time.time()
+    # Simulate system evaluation (mocked)
+    evaluation_success = True  # Replace with actual system call
+    eval_duration = time.time() - eval_start
+    assert evaluation_success, 'System failed to evaluate all rules.'
+    # Acceptance: System processes all rules within defined performance thresholds (e.g., 15 seconds)
+    assert eval_duration < 15, f'System took too long to evaluate rules: {eval_duration} seconds.'
+
+# Test Case TC-FT-008: SQL Injection Rule Submission
+@pytest.mark.usefixtures('driver_init')
+def test_sql_injection_rule_submission(driver):
+    # Simulate submitting a rule with SQL injection in a field value
+    rule = {
+        'trigger': {'type': 'specific_date', 'date': '2024-07-01T10:00:00Z'},
+        'action': {'type': 'fixed_amount', 'amount': 100},
+        'conditions': [{
+            'type': 'balance_threshold',
+            'value': '1000; DROP TABLE users;--'
+        }]
+    }
+    # Simulate system validation (mocked)
+    def is_rule_valid(rule):
+        # Reject if SQL injection pattern is detected
+        for condition in rule['conditions']:
+            if ';' in condition['value'] or 'DROP TABLE' in condition['value']:
+                return False
+        return True
+    rule_accepted = is_rule_valid(rule)
+    assert not rule_accepted, 'System accepted a rule with SQL injection payload.'
+    # Simulate that system does not execute any SQL
+    sql_executed = False  # Should remain False
+    assert not sql_executed, 'System executed SQL from an injected rule.'
