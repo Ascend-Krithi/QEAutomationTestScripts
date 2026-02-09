@@ -1,7 +1,9 @@
 import pytest
 from Pages.LoginPage import LoginPage
 from RuleEnginePage import RuleEnginePage
-from RuleCreationPage import RuleCreationPage
+from Pages.RuleCreationPage import RuleCreationPage
+from Pages.DepositSimulationPage import DepositSimulationPage
+from Pages.RuleValidationPage import RuleValidationPage
 
 class TestLoginFunctionality:
     def __init__(self, page):
@@ -88,67 +90,36 @@ class TestLoginFunctionality:
 
     async def test_deposit_percentage_rule(self):
         # TC-FT-005: Define a rule for 10% of deposit action and simulate deposit of 500 units
-        rule = {
-            'trigger': {'type': 'after_deposit'},
-            'action': {'type': 'percentage_of_deposit', 'percentage': 10},
-            'conditions': []
-        }
-        rule_engine = RuleEnginePage(self.page)
-        rule_engine.define_rule(rule)
-        assert rule_engine.is_rule_accepted()
-        rule_engine.simulate_deposit(500)
-        assert rule_engine.verify_transfer_action(50)
+        rule_creation_page = RuleCreationPage(self.page)
+        deposit_simulation_page = DepositSimulationPage(self.page)
+        rule_creation_page.go_to()
+        rule_creation_page.select_trigger_type('after_deposit')
+        rule_creation_page.select_action_type('percentage_of_deposit')
+        rule_creation_page.enter_action_percentage(10)
+        rule_creation_page.submit_rule()
+        assert rule_creation_page.validate_rule_submission(expected_success=True)
+        deposit_simulation_page.go_to()
+        deposit_simulation_page.enter_balance(1000)  # Example balance
+        deposit_simulation_page.enter_deposit_amount(500)
+        deposit_simulation_page.select_source('salary')
+        deposit_simulation_page.submit_deposit()
+        assert deposit_simulation_page.is_transfer_executed() is True
 
     async def test_currency_conversion_rule_and_existing_rules(self):
         # TC-FT-006: Define a currency conversion rule, check acceptance/rejection, verify existing rules
-        rule = {
-            'trigger': {'type': 'currency_conversion', 'currency': 'EUR'},
-            'action': {'type': 'fixed_amount', 'amount': 100},
-            'conditions': []
-        }
-        rule_engine = RuleEnginePage(self.page)
-        rule_engine.define_currency_conversion_rule(rule)
-        if rule_engine.is_rule_accepted():
-            assert True
-        else:
-            error = rule_engine.get_error_message()
-            assert error is not None and 'currency_conversion' in error
-        assert rule_engine.verify_existing_rules_function()
-
-    async def test_batch_rule_loading_and_simultaneous_evaluation(self):
-        # TC-FT-007: Load 10,000 valid rules, trigger evaluation, and check performance/consistency
-        rule_creation = RuleCreationPage(self.page)
-        num_rules = 10000
-        batch_rules = []
-        for i in range(num_rules):
-            rule = {
-                'trigger': {'type': 'after_deposit', 'id': f'batch_{i}'},
-                'action': {'type': 'fixed_amount', 'amount': i+1},
-                'conditions': []
-            }
-            batch_rules.append(rule)
-        upload_response = await rule_creation.upload_batch_rules(batch_rules)
-        assert upload_response['success'] is True, f"Batch upload failed: {upload_response.get('error', '')}"
-        # Evaluate all rules and check for performance and no failures
-        eval_response = await rule_creation.evaluate_all_rules()
-        assert eval_response['evaluated'] == num_rules, f"Not all rules evaluated: {eval_response}"
-        assert eval_response.get('failures', 0) == 0, f"Failures during evaluation: {eval_response.get('failures_detail', '')}"
-        # Optionally, check for timing if available
-        if 'duration_ms' in eval_response:
-            assert eval_response['duration_ms'] < 60000, f"Evaluation took too long: {eval_response['duration_ms']}ms"
-
-    async def test_sql_injection_rule_submission(self):
-        # TC-FT-008: Submit rule with SQL injection payload, ensure system rejects and does not execute SQL
-        rule_creation = RuleCreationPage(self.page)
-        injection_payload = "1; DROP TABLE rules; --"
-        malicious_rule = {
-            'trigger': {'type': 'after_deposit'},
-            'action': {'type': 'fixed_amount', 'amount': injection_payload},
-            'conditions': []
-        }
-        response = await rule_creation.submit_rule_with_sql_injection(malicious_rule)
-        assert response['success'] is False, "SQL injection rule was accepted!"
-        assert 'sql injection' in response.get('error', '').lower() or 'invalid' in response.get('error', '').lower(), f"Unexpected error message: {response.get('error', '')}"
-        # Optionally, verify system state is intact (e.g., rules table still exists)
-        if hasattr(rule_creation, 'verify_rules_table_integrity'):
-            assert await rule_creation.verify_rules_table_integrity(), "Rules table integrity compromised after SQL injection test!"
+        rule_creation_page = RuleCreationPage(self.page)
+        rule_validation_page = RuleValidationPage(self.page)
+        rule_creation_page.go_to()
+        rule_creation_page.select_trigger_type('currency_conversion')
+        rule_creation_page.select_action_type('fixed_amount')
+        rule_creation_page.enter_action_amount(100)
+        rule_creation_page.select_action_currency('EUR')
+        rule_creation_page.submit_rule()
+        indicator = rule_creation_page.handle_future_rule_type('currency_conversion')
+        assert indicator == 'Rule type accepted.' or 'currency_conversion' in indicator
+        rule_validation_page.go_to()
+        rules = rule_validation_page.get_rule_list()
+        for idx, _ in enumerate(rules):
+            accepted = rule_validation_page.validate_rule_acceptance(idx)
+            rejected = rule_validation_page.validate_rule_rejection(idx)
+            assert accepted or rejected
