@@ -1,13 +1,48 @@
 # Import necessary modules
 import pytest
 from selenium import webdriver
+from Pages.LoginPage import LoginPage
+from Pages.DashboardPage import DashboardPage
 from RuleConfigurationPage import RuleConfigurationPage
 
 class TestLoginFunctionality:
-    def __init__(self, page):
-        self.page = page
-        self.login_page = LoginPage(page)
+    def setup_method(self):
+        self.driver = webdriver.Chrome()
+        self.base_url = "http://localhost:8000"  # Adjust as per your environment
+        self.login_page = LoginPage(self.driver, self.base_url)
+        self.dashboard_page = DashboardPage(self.driver)
 
+    def teardown_method(self):
+        self.driver.quit()
+
+    def test_TC_Login_01_valid_login(self):
+        """
+        Test Case TC_Login_01:
+        1. Navigate to the login page.
+        2. Enter valid email and password.
+        3. Click the 'Login' button.
+        Expected: User is logged in and redirected to account dashboard.
+        """
+        self.login_page.navigate()
+        self.login_page.login("user@example.com", "ValidPassword123")
+        assert self.dashboard_page.is_loaded(), "Dashboard should be loaded after valid login"
+
+    def test_TC_Login_02_invalid_login(self):
+        """
+        Test Case TC_Login_02:
+        1. Navigate to the login page.
+        2. Enter invalid email and/or password.
+        3. Click the 'Login' button.
+        Expected: Error message displayed: 'Invalid credentials'. User is not logged in.
+        """
+        self.login_page.navigate()
+        self.login_page.login("wronguser@example.com", "WrongPassword")
+        error = self.login_page.get_error_message()
+        assert error is not None, "Error message should be displayed for invalid login"
+        assert "invalid" in error.lower(), "Error message should mention 'Invalid credentials'"
+        assert not self.dashboard_page.is_loaded(), "Dashboard should not be loaded after invalid login"
+
+    # Existing async tests (left unchanged)
     async def test_empty_fields_validation(self):
         await self.login_page.navigate()
         await self.login_page.submit_login('', '')
@@ -15,7 +50,7 @@ class TestLoginFunctionality:
 
     async def test_remember_me_functionality(self):
         await self.login_page.navigate()
-        await self.login_page.fill_email('
+        await self.login_page.fill_email('')
 
 # --- Appended Selenium Test Methods for TC_SCRUM158_03 and TC_SCRUM158_04 ---
 
