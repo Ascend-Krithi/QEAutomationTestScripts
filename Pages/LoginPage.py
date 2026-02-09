@@ -24,10 +24,16 @@ class LoginPage:
         username_field.clear()
         username_field.send_keys(username)
 
+    def leave_email_empty(self):
+        self.enter_username("")
+
     def enter_password(self, password: str):
         password_field = self.wait.until(EC.visibility_of_element_located(self.PASSWORD_INPUT))
         password_field.clear()
         password_field.send_keys(password)
+
+    def leave_password_empty(self):
+        self.enter_password("")
 
     def click_login(self):
         login_btn = self.wait.until(EC.element_to_be_clickable(self.LOGIN_BUTTON))
