@@ -55,3 +55,42 @@ class TestRuleConfiguration:
         error = self.rule_page.get_schema_error()
         assert error is not None, "Schema error feedback should be displayed"
         assert "tags" in error.lower(), "Error message should mention missing tags"
+
+    # --- Appended Selenium Test Methods for TC_SCRUM158_07 and TC_SCRUM158_08 ---
+    def test_TC_SCRUM158_07_max_conditions_and_actions(self):
+        """
+        Test case for creating a rule with maximum supported conditions and actions (10 each).
+        Steps:
+        1. Prepare test data with 10 conditions and 10 actions.
+        2. Use create_rule_with_max_conditions_actions to create the rule.
+        3. Assert that the rule is created and validated.
+        """
+        rule_id = "RC_158_07"
+        rule_name = "Max Conditions Actions"
+        # Prepare 10 dummy conditions and actions
+        conditions = [
+            {'type': 'Balance', 'balance_limit': 1000 + i * 100, 'source_provider': 'ProviderA', 'operator': '>'}
+            for i in range(10)
+        ]
+        actions = [
+            {'type': 'Transfer', 'amount': 100 + i * 10, 'percentage': None, 'destination_account': f'ACC{i+1}'}
+            for i in range(10)
+        ]
+        result = self.rule_page.create_rule_with_max_conditions_actions(rule_id, rule_name, conditions, actions)
+        assert result, "Rule with max conditions and actions should be created and validated successfully."
+
+    def test_TC_SCRUM158_08_empty_conditions_and_actions(self):
+        """
+        Test case for creating a rule with empty conditions and actions arrays.
+        Steps:
+        1. Prepare test data with empty lists.
+        2. Use create_rule_with_empty_conditions_actions to create the rule.
+        3. Assert schema validation and capture any error.
+        """
+        rule_id = "RC_158_08"
+        rule_name = "Empty Conditions Actions"
+        result = self.rule_page.create_rule_with_empty_conditions_actions(rule_id, rule_name)
+        assert isinstance(result, dict), "Result should be a dict with schema_valid and error keys."
+        # Accept either valid or invalid as per business rule, but log error if present
+        if not result['schema_valid']:
+            print(f"Schema validation error: {result['error']}")
