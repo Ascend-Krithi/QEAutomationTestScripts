@@ -157,3 +157,47 @@ class TestRuleDefinitionAndTransaction:
         # Step 2: Verify existing rules still execute
         result = self.rule_page.verify_existing_rules()
         assert result == "Existing rules executed successfully."
+
+# --- New test methods for TC-FT-007 and TC-FT-008 ---
+class TestRuleDefinitionPerformanceAndSecurity:
+    def __init__(self, driver):
+        self.driver = driver
+        self.rule_definition_page = RuleDefinitionPage(driver)
+
+    def test_bulk_rule_loading_and_evaluation(self):
+        """
+        Test Case TC-FT-007:
+        1. Load 10,000 valid rules into the system.
+        2. Trigger evaluation for all rules simultaneously.
+        3. Assert system loads and processes rules within acceptable time limits.
+        """
+        # Step 1: Load 10,000 valid rules
+        rules_batch = []
+        for i in range(10000):
+            rule = {
+                'trigger': {'type': 'after_deposit'},
+                'action': {'type': 'fixed_amount', 'amount': 100},
+                'conditions': [{'type': 'balance_threshold', 'value': 1000}]
+            }
+            rules_batch.append(rule)
+        load_time = self.rule_definition_page.load_bulk_rules(rules_batch)
+        assert load_time < 60  # Acceptable time limit (example threshold)
+
+        # Step 2: Trigger evaluation for all rules
+        eval_time = self.rule_definition_page.trigger_bulk_evaluation()
+        assert eval_time < 120  # Acceptable time limit (example threshold)
+
+    def test_sql_injection_rule_submission_and_rejection(self):
+        """
+        Test Case TC-FT-008:
+        1. Submit a rule with SQL injection in a field value.
+        2. Assert system rejects the rule and does not execute any SQL.
+        """
+        rule_data = {
+            "trigger": {"type": "specific_date", "date": "2024-07-01T10:00:00Z"},
+            "action": {"type": "fixed_amount", "amount": 100},
+            "conditions": [{"type": "balance_threshold", "value": "1000; DROP TABLE users;--"}]
+        }
+        self.rule_definition_page.submit_sql_injection_rule(rule_data)
+        rejected = self.rule_definition_page.verify_sql_injection_rejection()
+        assert rejected, "SQL injection rule was not properly rejected."
