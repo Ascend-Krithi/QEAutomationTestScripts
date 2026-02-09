@@ -178,3 +178,50 @@ class TestRuleManagerPage:
         assert accepted or rejected, "Rule was neither accepted nor gracefully rejected"
         # Verify existing rules continue to execute as before
         assert self.rule_manager_page.verify_existing_rules_intact(), "Existing rules not functioning as expected"
+
+    def test_bulk_rule_loading_and_evaluation(self):
+        """
+        TC-FT-007: Bulk rule loading and evaluation.
+        Step 1: Use RuleManagerPage.load_batch_rules() to load 10,000 valid rules (simulate batch JSON).
+        Step 2: Use ScheduleSimulatorPage.trigger_evaluation_for_all_rules().
+        Expect: All rules are loaded, evaluation completes within performance threshold, and no errors are reported.
+        """
+        # Simulate 10,000 valid rules as a batch JSON array
+        batch_rules = [
+            {
+                "name": f"Bulk Rule {i}",
+                "trigger": {"type": "after_deposit"},
+                "action": {"type": "fixed_amount", "amount": 1},
+                "conditions": []
+            } for i in range(1, 10001)
+        ]
+        load_result = self.rule_manager_page.load_batch_rules(batch_rules)
+        assert load_result["success"], f"Batch rule load failed: {load_result.get('error')}"
+        # Trigger evaluation for all rules
+        evaluation_result = self.schedule_simulator_page.trigger_evaluation_for_all_rules()
+        assert evaluation_result["success"], f"Evaluation failed: {evaluation_result.get('error')}"
+        # Performance assertion (pseudo: check evaluation time is within threshold)
+        assert evaluation_result["duration_sec"] <= 60, (
+            f"Evaluation exceeded performance threshold: {evaluation_result['duration_sec']}s"
+        )
+        # Ensure no errors in results
+        assert not evaluation_result.get("errors"), f"Errors reported: {evaluation_result.get('errors')}"
+
+    def test_sql_injection_rule_submission(self):
+        """
+        TC-FT-008: SQL injection rule submission.
+        Step 1: Use RuleManagerPage.submit_rule_with_sql_injection() to submit a rule with SQL injection payload.
+        Step 2: Assert system rejection and verify no SQL execution occurred.
+        """
+        injection_payload = {
+            "name": "SQL Injection Test",
+            "trigger": {"type": "after_deposit"},
+            "action": {"type": "fixed_amount", "amount": 100},
+            "conditions": [
+                {"field": "account", "operator": "=", "value": "' OR 1=1; --"}
+            ]
+        }
+        result = self.rule_manager_page.submit_rule_with_sql_injection(injection_payload)
+        assert result["rejected"], "SQL injection payload was not rejected by the system"
+        # Verify no SQL execution occurred (pseudo: check for absence of side effects)
+        assert not result.get("sql_executed", False), "SQL injection was executed or affected the database!"
