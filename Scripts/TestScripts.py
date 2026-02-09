@@ -129,22 +129,54 @@ class TestTransferAPI(unittest.TestCase):
         self.assertNotEqual(result["error_message"], "", "Expected error message for rejection")
         self.assertIn("Amount exceeds maximum limit", result["error_message"], f"Expected error message, got {result['error_message']}")
 
-    def test_TC_158_05_extra_field_payload(self):
+    def test_TC_158_05_transfer_with_extra_field(self):
         """
         TestCase TC-158-05: Prepare a valid JSON payload with an additional 'note' field, submit to /transfer endpoint, expect transfer completes successfully and note field is ignored or logged.
         """
-        result = self.transfer_api.submit_extra_field_payload_and_verify()
+        payload = {
+            "amount": 100.00,
+            "currency": "USD",
+            "source": "ACC123",
+            "destination": "ACC456",
+            "timestamp": "2024-06-01T10:00:00Z"
+        }
+        result = self.transfer_api.submit_with_extra_field(payload)
         self.assertEqual(result["status_code"], 200, f"Expected 200 OK, got {result['status_code']}")
         self.assertTrue(result["success"], f"Expected success, got {result['error_message']}")
         self.assertIn("result", result["response_json"], "Missing 'result' key in response JSON")
         self.assertEqual(result["response_json"].get("result"), "success", f"Expected 'success', got {result['response_json'].get('result')}")
-        # Optionally check if note field was ignored or logged
-        # This may depend on implementation specifics
+        self.assertIn(result["note_handling"], ["ignored", "logged"], f"Expected note_handling to be 'ignored' or 'logged', got {result['note_handling']}")
 
-    def test_TC_158_06_malformed_json_payload(self):
+    def test_TC_158_06_malformed_json_transfer(self):
         """
         TestCase TC-158-06: Prepare a malformed JSON payload (missing closing brace), submit to /transfer endpoint, expect API returns error 'Invalid JSON format'.
         """
-        result = self.transfer_api.submit_malformed_json_and_verify()
+        malformed_payload = '{"amount": 100.00, "currency": "USD", "source": "ACC123", "destination": "ACC456", "timestamp": "2024-06-01T10:00:00Z"'
+        result = self.transfer_api.submit_malformed_json_transfer(malformed_payload)
         self.assertFalse(result["success"], "Expected API to reject malformed JSON payload")
-        self.assertIn("invalid json", result["error_message"].lower(), f"Expected error 'Invalid JSON format', got {result['error_message']}")
+        self.assertIn("Invalid JSON format", result["error_message"], f"Expected error 'Invalid JSON format', got {result['error_message']}")
+
+    def test_TC_158_07_bulk_transfer_performance(self):
+        """
+        TestCase TC-158-07: Prepare and submit 10,000 valid transfer payloads in rapid succession. Monitor API response times and throughput. Acceptance Criteria: All transfers processed within <1s per transfer; API maintains performance and does not degrade under load.
+        """
+        result = self.transfer_api.submit_bulk_transfers_and_monitor_performance(num_transfers=10000)
+        self.assertLess(result["average_time"], 1.0, f"Average transfer time should be <1s, got {result['average_time']}")
+        self.assertEqual(result["failure_count"], 0, f"Expected all transfers to succeed, got {result['failure_count']} failures")
+        self.assertTrue(result["criteria_met"], "Performance criteria not met")
+
+    def test_TC_158_08_transfer_invalid_auth(self):
+        """
+        TestCase TC-158-08: Prepare a valid JSON payload and submit with an invalid authentication token. Expect authentication error ('Invalid authentication token').
+        """
+        payload = {
+            "amount": 100.00,
+            "currency": "USD",
+            "source": "ACC123",
+            "destination": "ACC456",
+            "timestamp": "2024-06-01T10:00:00Z"
+        }
+        result = self.transfer_api.submit_transfer_with_invalid_auth(payload)
+        self.assertFalse(result["success"], "Expected authentication error for invalid token")
+        self.assertTrue(result["auth_error_detected"], "Expected 'Invalid authentication token' error")
+        self.assertIn("Invalid authentication token", result["error_message"], f"Expected error message, got {result['error_message']}")
