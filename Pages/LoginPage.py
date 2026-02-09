@@ -9,12 +9,12 @@ class LoginPage:
     Selenium PageClass for Login Page
 
     Executive Summary:
-    This PageClass automates login functionality for both positive and negative scenarios, enabling robust test coverage for TC_Login_03 (empty email, valid password, expects 'Email required' error) and TC_Login_04 (valid email, empty password, expects 'Password required' error). It adheres to strict Selenium Python standards, ensuring code integrity and compatibility with downstream automation pipelines.
+    This PageClass automates login functionality for both positive and negative scenarios, enabling robust test coverage for TC_Login_03, TC_Login_04, TC_LOGIN_009, and TC_LOGIN_010. It adheres to strict Selenium Python standards, ensuring code integrity and compatibility with downstream automation pipelines.
 
     Detailed Analysis:
     - Locators follow repository conventions and are organized for maintainability.
-    - Methods cover navigation, credential entry, login action, and outcome verification.
-    - Handles negative login flows, including error feedback for empty fields.
+    - Methods cover navigation, credential entry, login action, outcome verification, rate limiting, captcha, lockout, and case sensitivity.
+    - Handles negative login flows, including error feedback for empty fields and advanced scenarios.
     - Synchronization and error handling are implemented for reliability.
 
     Implementation Guide:
@@ -23,7 +23,9 @@ class LoginPage:
     3. Use login_with_credentials(email, password) for positive/negative tests.
     4. Use login_with_empty_email(valid_password) for TC_Login_03.
     5. Use login_with_empty_password(valid_email) for TC_Login_04.
-    6. Use get_error_message() to validate error feedback for invalid login.
+    6. Use simulate_rapid_invalid_logins() for TC_LOGIN_009.
+    7. Use test_case_sensitivity() for TC_LOGIN_010.
+    8. Use get_error_message(), is_rate_limited(), is_captcha_present(), is_account_locked() to validate outcomes.
 
     Quality Assurance Report:
     - Locators validated against UI and repository standards.
@@ -49,6 +51,9 @@ class LoginPage:
     LOGIN_BUTTON = (By.ID, "loginBtn")
     ERROR_MESSAGE = (By.ID, "errorMsg")
     DASHBOARD_INDICATOR = (By.ID, "dashboard-main")  # Example, update if needed
+    CAPTCHA_INDICATOR = (By.ID, "captcha-container")  # Example, update if needed
+    RATE_LIMIT_MESSAGE = (By.ID, "rate-limit-msg")   # Example, update if needed
+    LOCKOUT_MESSAGE = (By.ID, "lockout-msg")         # Example, update if needed
 
     def __init__(self, driver):
         self.driver = driver
@@ -145,3 +150,77 @@ class LoginPage:
             return {"success": True, "error": None}
         else:
             return {"success": False, "error": self.get_error_message()}
+
+    # --- TC_LOGIN_009: Rapid Invalid Login Attempts, Rate Limiting/Captcha/Lockout ---
+    def simulate_rapid_invalid_logins(self, invalid_email, invalid_password, attempts=10):
+        """
+        Simulates rapid invalid login attempts to trigger rate limiting, captcha, or account lockout.
+        Returns dict with detection flags and error messages.
+        """
+        for i in range(attempts):
+            self.login_with_credentials(invalid_email, invalid_password)
+            # Optionally wait for error message
+            self.get_error_message()
+        return {
+            "rate_limited": self.is_rate_limited(),
+            "captcha_present": self.is_captcha_present(),
+            "account_locked": self.is_account_locked(),
+            "error_message": self.get_error_message()
+        }
+
+    def is_rate_limited(self):
+        """
+        Detects if rate limiting message is present after rapid attempts.
+        """
+        try:
+            msg_elem = self.wait.until(EC.visibility_of_element_located(self.RATE_LIMIT_MESSAGE))
+            return msg_elem.is_displayed()
+        except TimeoutException:
+            return False
+
+    def is_captcha_present(self):
+        """
+        Detects if captcha is present after rapid attempts.
+        """
+        try:
+            captcha_elem = self.wait.until(EC.visibility_of_element_located(self.CAPTCHA_INDICATOR))
+            return captcha_elem.is_displayed()
+        except TimeoutException:
+            return False
+
+    def is_account_locked(self):
+        """
+        Detects if account lockout message is present after rapid attempts.
+        """
+        try:
+            lockout_elem = self.wait.until(EC.visibility_of_element_located(self.LOCKOUT_MESSAGE))
+            return lockout_elem.is_displayed()
+        except TimeoutException:
+            return False
+
+    # --- TC_LOGIN_010: Case Sensitivity in Credentials ---
+    def test_case_sensitivity(self, email, password):
+        """
+        Tests login credential case sensitivity.
+        Returns dict with results for original, upper, lower, mixed case variants.
+        """
+        variants = {
+            "original": (email, password),
+            "upper": (email.upper(), password.upper()),
+            "lower": (email.lower(), password.lower()),
+            "mixed": (self._toggle_case(email), self._toggle_case(password))
+        }
+        results = {}
+        for variant, creds in variants.items():
+            self.login_with_credentials(*creds)
+            results[variant] = {
+                "success": self.is_dashboard_redirected(),
+                "error": self.get_error_message()
+            }
+        return results
+
+    def _toggle_case(self, s):
+        """
+        Helper to toggle case for mixed case testing.
+        """
+        return ''.join([c.upper() if i % 2 == 0 else c.lower() for i, c in enumerate(s)])
