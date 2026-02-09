@@ -48,3 +48,40 @@ class TestRuleManagement(unittest.TestCase):
             page.validate_existing_rules_execution()
         finally:
             driver.quit()
+
+    def test_TC_FT_007_batch_rule_loading_and_performance(self):
+        """
+        TC-FT-007:
+        Step 1: Load 10,000 valid rules into the system.
+        Step 2: Trigger evaluation for all rules simultaneously.
+        """
+        driver = webdriver.Chrome()
+        page = RuleManagementPage(driver)
+        try:
+            # Step 1: Generate and load 10,000 valid rules
+            rules = [
+                {
+                    'conditions': {'cond_key': f'value{i}'},
+                    'actions': {'action_key': f'action{i}'}
+                }
+                for i in range(10000)
+            ]
+            page.load_rules_batch(rules)
+
+            # Step 2: Trigger evaluation and measure performance
+            elapsed = page.trigger_evaluation_and_measure_performance(timeout_threshold=60)
+            assert elapsed <= 60, f"Batch evaluation exceeded performance threshold: {elapsed:.2f}s"
+        finally:
+            driver.quit()
+
+    def test_TC_FT_008_sql_injection_rule_submission_and_rejection(self):
+        """
+        TC-FT-008:
+        Step 1: Submit a rule with SQL injection in a field value.
+        """
+        driver = webdriver.Chrome()
+        page = RuleManagementPage(driver)
+        try:
+            page.submit_rule_with_sql_injection_and_validate_rejection()
+        finally:
+            driver.quit()
