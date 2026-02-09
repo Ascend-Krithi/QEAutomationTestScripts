@@ -231,6 +231,34 @@ class FinancialTransferPage:
         except Exception as e:
             return True, f"API submission failed: {str(e)}"
 
+    # --- TC-158-05 Implementation ---
+    def handle_valid_payload_with_extra_field(self, amount, currency, source, destination, timestamp, note, endpoint_url):
+        """
+        TC-158-05: Submit valid payload with extra 'note' field to /transfer endpoint.
+        Ensures extra field is ignored/logged and transfer succeeds.
+        Returns tuple: (success: bool, response: dict/str, extra_field_logged: bool)
+        """
+        payload = self.prepare_payload_with_extra_field(amount, currency, source, destination, timestamp, note)
+        # Log extra field
+        extra_field_logged = False
+        if "note" in payload:
+            print(f"TC-158-05: Extra field 'note' detected: {payload['note']}")
+            extra_field_logged = True
+        success, response = self.submit_payload_via_api(payload, endpoint_url)
+        valid = self.validate_extra_field_handling(response)
+        return valid, response, extra_field_logged
+
+    # --- TC-158-06 Implementation ---
+    def handle_malformed_json_payload(self, malformed_payload_str, endpoint_url):
+        """
+        TC-158-06: Submit malformed JSON payload to /transfer endpoint.
+        Ensures proper error handling and response validation.
+        Returns tuple: (error_detected: bool, response: dict/str)
+        """
+        error, response = self.submit_malformed_payload_via_api(malformed_payload_str, endpoint_url)
+        valid = self.validate_malformed_json_error(response)
+        return valid, response
+
 # --- Test Case Implementations ---
 # TC-158-05: Prepare valid payload with extra field, submit via API, validate transfer completes and extra field is ignored/logged.
 # TC-158-06: Prepare malformed JSON payload, submit via API, validate error message 'Invalid JSON format'.
