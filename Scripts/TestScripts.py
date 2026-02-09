@@ -48,3 +48,39 @@ class TestRuleManagement:
             "conditions": [{"type": "balance_threshold", "value": "1000; DROP TABLE users;--"}]
         }
         self.rule_page.submit_rule_with_sql_injection(sql_injection_rule)
+
+    def test_create_store_and_retrieve_valid_rule(self):
+        """
+        TC-FT-009:
+        1. Create and store a valid rule: trigger={"type": "specific_date", "date": "2024-07-01T10:00:00Z"}, action={"type": "fixed_amount", "amount": 100}, conditions=[]
+        2. Retrieve the rule and verify it matches the original input.
+        """
+        valid_rule = {
+            "trigger": {"type": "specific_date", "date": "2024-07-01T10:00:00Z"},
+            "action": {"type": "fixed_amount", "amount": 100},
+            "conditions": []
+        }
+        # Create and store the rule
+        self.rule_page.create_and_store_rule(valid_rule["trigger"], valid_rule["action"], valid_rule["conditions"])
+        # Retrieve the rule
+        retrieved_rule = self.rule_page.retrieve_rule()
+        # Verify the retrieved rule matches the original
+        assert retrieved_rule["trigger"] == valid_rule["trigger"], f"Trigger mismatch. Got: {retrieved_rule['trigger']}"
+        assert retrieved_rule["action"] == valid_rule["action"], f"Action mismatch. Got: {retrieved_rule['action']}"
+        assert retrieved_rule["conditions"] == valid_rule["conditions"], f"Conditions mismatch. Got: {retrieved_rule['conditions']}"
+
+    def test_define_and_trigger_rule_with_empty_conditions(self):
+        """
+        TC-FT-010:
+        1. Define a rule with empty conditions: trigger={"type": "after_deposit"}, action={"type": "fixed_amount", "amount": 100}, conditions=[]
+        2. Trigger the rule with deposit=1000, verify transfer executed unconditionally.
+        """
+        trigger = {"type": "after_deposit"}
+        action = {"type": "fixed_amount", "amount": 100}
+        # Define the rule with empty conditions
+        self.rule_page.define_rule_with_empty_conditions(trigger, action)
+        # Trigger the rule with deposit=1000
+        self.rule_page.trigger_rule(1000)
+        # Verify that the rule executed unconditionally
+        result = self.rule_page.verify_rule_execution()
+        assert "Executed" in result, f"Rule was not executed as expected. Got: {result}"
