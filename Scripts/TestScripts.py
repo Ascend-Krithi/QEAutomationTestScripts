@@ -82,7 +82,7 @@ class TestRuleConfiguration:
         schema_dict = {'trigger': 'deposit', 'conditions': conditions, 'actions': actions}
         validation_result = self.rule_page.configure_rule(rule_id, rule_name, trigger_info, conditions, actions, schema_dict)
         assert validation_result['success'] is not None, 'JSON schema should be valid.'
-        assert validation_result['error'] is None, f'Unexpected schema error: {validation_result['error']}'
+        assert validation_result['error'] is None, f'Unexpected schema error: {validation_result["error"]}'
         created = self.rule_page.create_rule(rule_id, rule_name, trigger_info, conditions, actions, schema_dict)
         assert created, 'Rule should be created successfully.'
         # Retrieve and validate all conditions/actions are persisted
@@ -113,3 +113,31 @@ class TestRuleConfiguration:
             assert created, 'Rule should be created or rejected as per business rule.'
         else:
             assert validation_result['error'] is not None, 'Expected error for empty conditions/actions.'
+
+    # --- Appended Test Case Methods ---
+    def test_TC_SCRUM158_01(self):
+        """
+        Test Case TC_SCRUM158_01:
+        Prepare a JSON rule schema with all supported trigger, condition, and action types populated.
+        [Test Data: { 'trigger': 'balance_above', 'conditions': [{...}], 'actions': [{...}] }]
+        [Acceptance Criteria: TS_SCRUM158_01]
+        """
+        result = self.rule_page.test_TC_SCRUM158_01()
+        assert result["success_message"] is not None, "Expected success message for valid schema."
+        assert result["error_message"] is None, f"Unexpected error message: {result['error_message']}"
+        assert result["rule_created"], "Rule should be created successfully."
+        assert result["created_rule"] is not None, "Created rule should be retrieved from DB."
+
+    def test_TC_SCRUM158_02(self):
+        """
+        Test Case TC_SCRUM158_02:
+        Prepare a rule schema with two conditions and two actions.
+        [Test Data: { 'conditions': [{...}, {...}], 'actions': [{...}, {...}] }]
+        [Acceptance Criteria: TS_SCRUM158_02]
+        """
+        result = self.rule_page.test_TC_SCRUM158_02()
+        assert result["success_message"] is not None, "Expected success message for valid schema."
+        assert result["error_message"] is None, f"Unexpected error message: {result['error_message']}"
+        assert result["rule_created"], "Rule should be created successfully."
+        assert result["simulation_result"]["conditions_evaluated"], "Conditions should be evaluated."
+        assert result["simulation_result"]["actions_executed"], "Actions should be executed."
