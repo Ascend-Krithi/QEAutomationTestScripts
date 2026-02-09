@@ -72,3 +72,42 @@ class TestRuleConfiguration(unittest.TestCase):
         error_message = self.rule_page.submit_rule_unsupported_action(rule_id, rule_name)
         self.assertIsNotNone(error_message, "Error message expected for unsupported action type.")
         self.assertIn("unsupported", error_message.lower(), "Error message should indicate unsupported action type.")
+
+    # --- Appended for TC-FT-005 ---
+    def test_percentage_of_deposit_rule_and_transfer(self):
+        """
+        TC-FT-005:
+        1. Define a rule for 10% of deposit action.
+        2. Simulate deposit of 500 units.
+        3. Validate transfer of 50 units is executed.
+        """
+        rule_id = "TC005"
+        rule_name = "10 Percent Deposit Rule"
+        percentage = 10
+        deposit_amount = 500
+        expected_transfer_amount = 50
+        # Step 1: Define the rule
+        self.rule_page.define_percentage_of_deposit_rule(rule_id, rule_name, percentage)
+        # Step 2: Validate rule acceptance (assume success if no exception)
+        # Step 3: Simulate deposit and validate transfer
+        transfer_executed = self.rule_page.simulate_deposit_and_validate_transfer(deposit_amount, expected_transfer_amount)
+        self.assertTrue(transfer_executed, "Transfer of 50 units should be executed.")
+
+    # --- Appended for TC-FT-006 ---
+    def test_currency_conversion_rule_and_existing_rules(self):
+        """
+        TC-FT-006:
+        1. Define a rule with trigger 'currency_conversion' and fixed_amount action.
+        2. Validate system accepts or gracefully rejects with clear message.
+        3. Verify existing rules continue to execute as before.
+        """
+        rule_id = "TC006"
+        rule_name = "Currency Conversion Rule"
+        currency = "EUR"
+        amount = 100
+        # Step 1: Define the rule and validate acceptance/rejection
+        rule_accepted = self.rule_page.define_currency_conversion_rule_and_validate(rule_id, rule_name, currency, amount)
+        self.assertTrue(rule_accepted, "System should accept or gracefully reject with a clear message.")
+        # Step 2: Verify existing rules still work
+        existing_rules_ok = self.rule_page.verify_existing_rules_functionality()
+        self.assertTrue(existing_rules_ok, "Existing rules should continue to execute as before.")
