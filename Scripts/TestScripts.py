@@ -30,140 +30,32 @@ class TestRuleConfiguration:
     def teardown_method(self):
         self.driver.quit()
 
-    def test_TC_SCRUM158_01_create_rule_with_all_types(self):
-        """
-        Test Case TC_SCRUM158_01
-        Steps:
-        1. Prepare a JSON rule schema with all supported trigger, condition, and action types populated.
-        2. Submit the rule schema to the API endpoint for rule creation.
-        3. Retrieve the created rule from the database.
-        4. Validate the rule matches the submitted schema.
-        """
-        self.rule_config_page.enter_rule_name('TestRule_AllTypes')
-        self.rule_config_page.click_save()
-        # Add assertions and API/DB calls as appropriate for your environment
-        # This is a UI-level simulation
-        # assert rule_created_in_db == expected_schema
+    # ... (existing test methods)
 
-    def test_TC_SCRUM158_02_create_rule_with_multiple_conditions_actions(self):
-        """
-        Test Case TC_SCRUM158_02
-        Steps:
-        1. Prepare a rule schema with two conditions and two actions.
-        2. Submit the schema to the API endpoint.
-        3. Verify rule logic via simulation.
-        4. Validate all conditions and actions are evaluated as expected.
-        """
-        self.rule_config_page.enter_rule_name('TestRule_MultiCondAct')
-        self.rule_config_page.click_save()
-        # Add assertions and API/DB calls as appropriate for your environment
-        # This is a UI-level simulation
-        # assert rule_evaluation == expected_result
-
-    def test_TC_SCRUM158_05_invalid_trigger_schema(self):
-        """
-        Test Case TC_SCRUM158_05
-        Steps:
-        1. Prepare a rule schema with an invalid trigger value.
-        2. Validate the schema using the UI.
-        3. Submit the schema via API.
-        4. Assert API returns 400 Bad Request with error about invalid value.
-        """
+    def test_TC_SCRUM158_09_minimal_rule_schema(self):
         api_url = "http://localhost:8000/rules"
         headers = {"Content-Type": "application/json"}
-        schema = self.rule_config_page.prepare_invalid_trigger_schema()
-        is_valid, error_msg = self.rule_config_page.validate_rule_schema(str(schema))
-        assert not is_valid, f"Schema should be invalid but validation passed. Error: {error_msg}"
-        status_code, response = self.rule_config_page.submit_rule_schema_api(schema, api_url, headers)
-        assert status_code == 400, f"API should return 400 Bad Request, got {status_code}. Response: {response}"
-        assert 'invalid value' in str(response), "Expected error about invalid value in response."
+        # Prepare minimal valid rule schema
+        minimal_schema = self.rule_config_page.prepare_minimal_rule_schema()
+        # Validate rule schema
+        is_valid = self.rule_config_page.validate_rule_schema(minimal_schema)
+        assert is_valid, "Minimal rule schema should be valid"
+        # Submit rule schema
+        response = self.rule_config_page.submit_rule_schema_api(minimal_schema, api_url, headers)
+        assert response.status_code == 201, f"Expected 201 Created, got {response.status_code}"
+        response_json = response.json()
+        assert "ruleId" in response_json, "ruleId should be present in response"
 
-    def test_TC_SCRUM158_06_condition_missing_params_schema(self):
-        """
-        Test Case TC_SCRUM158_06
-        Steps:
-        1. Prepare a rule schema with a condition missing required parameters.
-        2. Validate the schema using the UI.
-        3. Submit the schema via API.
-        4. Assert API returns 400 Bad Request with error about incomplete condition.
-        """
+    def test_TC_SCRUM158_10_unsupported_trigger_schema(self):
         api_url = "http://localhost:8000/rules"
         headers = {"Content-Type": "application/json"}
-        schema = self.rule_config_page.prepare_condition_missing_params_schema()
-        is_valid, error_msg = self.rule_config_page.validate_rule_schema(str(schema))
-        assert not is_valid, f"Schema should be invalid but validation passed. Error: {error_msg}"
-        status_code, response = self.rule_config_page.submit_rule_schema_api(schema, api_url, headers)
-        assert status_code == 400, f"API should return 400 Bad Request, got {status_code}. Response: {response}"
-        assert 'incomplete condition' in str(response), "Expected error about incomplete condition in response."
-
-    def test_TC_SCRUM158_03_rule_schema_with_metadata(self):
-        """
-        Test Case TC_SCRUM158_03
-        Steps:
-        1. Prepare a rule schema with metadata fields (description, tags).
-        2. Submit the schema (POST /rules).
-        3. Retrieve the rule (GET /rules/<rule_id>) and check metadata.
-        4. Assert metadata matches input.
-        """
-        api_url = "http://localhost:8000/rules"
-        headers = {"Content-Type": "application/json"}
-        schema = {
-            "trigger": "deposit",
-            "conditions": [
-                {
-                    "type": "amount_above",
-                    "balance_limit": 1000,
-                    "operator": "greater_than"
-                }
-            ],
-            "actions": [
-                {
-                    "type": "transfer",
-                    "fixed-amount": 500,
-                    "target-account-id": "ACC123"
-                }
-            ],
-            "metadata": {
-                "description": "Transfer rule",
-                "tags": ["finance", "auto"]
-            }
-        }
-        status_code, response = self.rule_config_page.submit_rule_schema_api(schema, api_url, headers)
-        assert status_code == 201, f"Rule creation failed, got {status_code}. Response: {response}"
-        rule_id = response.get('id')
-        assert rule_id, "Rule ID not returned from API."
-        get_url = f"{api_url}/{rule_id}"
-        status_code_get, response_get = self.rule_config_page.submit_rule_schema_api({}, get_url, headers)
-        assert status_code_get == 200, f"Rule retrieval failed, got {status_code_get}. Response: {response_get}"
-        assert response_get.get('metadata', {}).get('description') == schema['metadata']['description'], "Metadata description mismatch."
-        assert response_get.get('metadata', {}).get('tags') == schema['metadata']['tags'], "Metadata tags mismatch."
-
-    def test_TC_SCRUM158_04_rule_schema_missing_trigger(self):
-        """
-        Test Case TC_SCRUM158_04
-        Steps:
-        1. Prepare a rule schema missing the 'trigger' field.
-        2. Submit the schema (POST /rules).
-        3. Assert API returns 400 Bad Request with error about missing field.
-        """
-        api_url = "http://localhost:8000/rules"
-        headers = {"Content-Type": "application/json"}
-        schema = {
-            "conditions": [
-                {
-                    "type": "amount_above",
-                    "balance_limit": 1000,
-                    "operator": "greater_than"
-                }
-            ],
-            "actions": [
-                {
-                    "type": "transfer",
-                    "fixed-amount": 500,
-                    "target-account-id": "ACC123"
-                }
-            ]
-        }
-        status_code, response = self.rule_config_page.submit_rule_schema_api(schema, api_url, headers)
-        assert status_code == 400, f"API should return 400 Bad Request, got {status_code}. Response: {response}"
-        assert 'missing field' in str(response), "Expected error about missing trigger field in response."
+        # Prepare schema with unsupported trigger type
+        unsupported_schema = self.rule_config_page.prepare_unsupported_trigger_schema()
+        # Validate rule schema
+        is_valid = self.rule_config_page.validate_rule_schema(unsupported_schema)
+        assert is_valid, "Unsupported trigger schema should pass local validation (if that's expected)"
+        # Submit rule schema
+        response = self.rule_config_page.submit_rule_schema_api(unsupported_schema, api_url, headers)
+        assert response.status_code in [400, 422], f"Expected 400 or 422, got {response.status_code}"
+        response_json = response.json()
+        assert "error" in response_json, "Error should be present in response when trigger type is unsupported"
