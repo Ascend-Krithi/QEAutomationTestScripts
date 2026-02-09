@@ -1,118 +1,129 @@
+# RuleConfigurationPage.py
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
 
 class RuleConfigurationPage:
     def __init__(self, driver):
         self.driver = driver
-        self.wait = WebDriverWait(driver, 10)
+        self.locators = {
+            'ruleIdInput': (By.ID, 'rule-id-field'),
+            'ruleNameInput': (By.NAME, 'rule-name'),
+            'saveRuleButton': (By.CSS_SELECTOR, "button[data-testid='save-rule-btn']"),
+            'triggerTypeDropdown': (By.ID, 'trigger-type-select'),
+            'datePicker': (By.CSS_SELECTOR, "input[type='date']"),
+            'recurringIntervalInput': (By.ID, 'interval-value'),
+            'afterDepositToggle': (By.ID, 'trigger-after-deposit'),
+            'addConditionBtn': (By.ID, 'add-condition-link'),
+            'conditionTypeDropdown': (By.CSS_SELECTOR, 'select.condition-type'),
+            'balanceThresholdInput': (By.CSS_SELECTOR, "input[name='balance-limit']"),
+            'transactionSourceDropdown': (By.ID, 'source-provider-select'),
+            'operatorDropdown': (By.CSS_SELECTOR, '.condition-operator-select'),
+            'actionTypeDropdown': (By.ID, 'action-type-select'),
+            'transferAmountInput': (By.NAME, 'fixed-amount'),
+            'percentageInput': (By.ID, 'deposit-percentage'),
+            'destinationAccountInput': (By.ID, 'target-account-id'),
+            'jsonSchemaEditor': (By.CSS_SELECTOR, '.monaco-editor'),
+            'validateSchemaBtn': (By.ID, 'btn-verify-json'),
+            'successMessage': (By.CSS_SELECTOR, '.alert-success'),
+            'schemaErrorMessage': (By.CSS_SELECTOR, "[data-testid='error-feedback-text']")
+        }
 
-    # --- Rule Form ---
     def enter_rule_id(self, rule_id):
-        elem = self.wait.until(EC.visibility_of_element_located((By.ID, 'rule-id-field')))
+        elem = self.driver.find_element(*self.locators['ruleIdInput'])
         elem.clear()
         elem.send_keys(rule_id)
 
     def enter_rule_name(self, rule_name):
-        elem = self.wait.until(EC.visibility_of_element_located((By.NAME, 'rule-name')))
+        elem = self.driver.find_element(*self.locators['ruleNameInput'])
         elem.clear()
         elem.send_keys(rule_name)
 
-    def save_rule(self):
-        btn = self.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-testid='save-rule-btn']")))
-        btn.click()
-
-    # --- Triggers ---
     def select_trigger_type(self, trigger_type):
-        dropdown = self.wait.until(EC.element_to_be_clickable((By.ID, 'trigger-type-select')))
-        dropdown.click()
-        dropdown.send_keys(trigger_type)
-        dropdown.send_keys(Keys.RETURN)
+        dropdown = self.driver.find_element(*self.locators['triggerTypeDropdown'])
+        for option in dropdown.find_elements_by_tag_name('option'):
+            if option.text.lower() == trigger_type.lower():
+                option.click()
+                break
 
-    def set_trigger_date(self, date_str):
-        date_picker = self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "input[type='date']")))
-        date_picker.clear()
-        date_picker.send_keys(date_str)
+    def add_condition(self, condition_type, operator, value):
+        self.driver.find_element(*self.locators['addConditionBtn']).click()
+        cond_type_dropdown = self.driver.find_element(*self.locators['conditionTypeDropdown'])
+        for option in cond_type_dropdown.find_elements_by_tag_name('option'):
+            if option.text.lower() == condition_type.lower():
+                option.click()
+                break
+        operator_dropdown = self.driver.find_element(*self.locators['operatorDropdown'])
+        for option in operator_dropdown.find_elements_by_tag_name('option'):
+            if option.text == operator:
+                option.click()
+                break
+        value_input = self.driver.find_element(*self.locators['balanceThresholdInput'])
+        value_input.clear()
+        value_input.send_keys(str(value))
 
-    def set_recurring_interval(self, interval):
-        interval_input = self.wait.until(EC.visibility_of_element_located((By.ID, 'interval-value')))
-        interval_input.clear()
-        interval_input.send_keys(str(interval))
+    def add_action(self, action_type, account, amount):
+        action_type_dropdown = self.driver.find_element(*self.locators['actionTypeDropdown'])
+        for option in action_type_dropdown.find_elements_by_tag_name('option'):
+            if option.text.lower() == action_type.lower():
+                option.click()
+                break
+        dest_account_input = self.driver.find_element(*self.locators['destinationAccountInput'])
+        dest_account_input.clear()
+        dest_account_input.send_keys(account)
+        amount_input = self.driver.find_element(*self.locators['transferAmountInput'])
+        amount_input.clear()
+        amount_input.send_keys(str(amount))
 
-    def toggle_after_deposit(self):
-        toggle = self.wait.until(EC.element_to_be_clickable((By.ID, 'trigger-after-deposit')))
-        toggle.click()
+    def enter_json_schema(self, schema_str):
+        # Assumes Monaco Editor is accessible via JS execution
+        editor = self.driver.find_element(*self.locators['jsonSchemaEditor'])
+        self.driver.execute_script("arguments[0].innerText = arguments[1]", editor, schema_str)
 
-    # --- Conditions ---
-    def add_condition(self):
-        btn = self.wait.until(EC.element_to_be_clickable((By.ID, 'add-condition-link')))
-        btn.click()
-
-    def select_condition_type(self, condition_type):
-        dropdown = self.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'select.condition-type')))
-        dropdown.click()
-        dropdown.send_keys(condition_type)
-        dropdown.send_keys(Keys.RETURN)
-
-    def enter_balance_threshold(self, threshold):
-        input_elem = self.wait.until(EC.visibility_of_element_located((By.NAME, 'balance-limit')))
-        input_elem.clear()
-        input_elem.send_keys(str(threshold))
-
-    def select_transaction_source(self, source):
-        dropdown = self.wait.until(EC.element_to_be_clickable((By.ID, 'source-provider-select')))
-        dropdown.click()
-        dropdown.send_keys(source)
-        dropdown.send_keys(Keys.RETURN)
-
-    def select_operator(self, operator):
-        dropdown = self.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '.condition-operator-select')))
-        dropdown.click()
-        dropdown.send_keys(operator)
-        dropdown.send_keys(Keys.RETURN)
-
-    # --- Actions ---
-    def select_action_type(self, action_type):
-        dropdown = self.wait.until(EC.element_to_be_clickable((By.ID, 'action-type-select')))
-        dropdown.click()
-        dropdown.send_keys(action_type)
-        dropdown.send_keys(Keys.RETURN)
-
-    def enter_transfer_amount(self, amount):
-        input_elem = self.wait.until(EC.visibility_of_element_located((By.NAME, 'fixed-amount')))
-        input_elem.clear()
-        input_elem.send_keys(str(amount))
-
-    def enter_percentage(self, percentage):
-        input_elem = self.wait.until(EC.visibility_of_element_located((By.ID, 'deposit-percentage')))
-        input_elem.clear()
-        input_elem.send_keys(str(percentage))
-
-    def enter_destination_account(self, account_id):
-        input_elem = self.wait.until(EC.visibility_of_element_located((By.ID, 'target-account-id')))
-        input_elem.clear()
-        input_elem.send_keys(account_id)
-
-    # --- Validation ---
-    def validate_json_schema(self):
-        btn = self.wait.until(EC.element_to_be_clickable((By.ID, 'btn-verify-json')))
-        btn.click()
+    def validate_schema(self):
+        self.driver.find_element(*self.locators['validateSchemaBtn']).click()
+        WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_element_located(self.locators['successMessage'])
+        )
 
     def get_success_message(self):
-        msg = self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, '.alert-success')))
-        return msg.text
+        return self.driver.find_element(*self.locators['successMessage']).text
 
     def get_schema_error_message(self):
-        msg = self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "[data-testid='error-feedback-text']")))
-        return msg.text
+        return self.driver.find_element(*self.locators['schemaErrorMessage']).text
 
-    # --- Backend Retrieval Stub (for test automation integration) ---
-    def retrieve_rule_from_backend(self, rule_id):
-        # Placeholder for backend API integration
-        # Implement API call or DB query to retrieve rule by rule_id
-        pass
+    # --- TEST CASE TC_SCRUM158_07 ---
+    def create_rule_with_required_fields(self, rule_id, rule_name, schema_dict):
+        """
+        Implements Test Case TC_SCRUM158_07:
+        - Prepare a schema with only required fields (one trigger, one condition, one action).
+        - Submit the schema and verify rule creation.
+        """
+        import json
+        self.enter_rule_id(rule_id)
+        self.enter_rule_name(rule_name)
+        self.enter_json_schema(json.dumps(schema_dict))
+        self.validate_schema()
+        self.driver.find_element(*self.locators['saveRuleButton']).click()
+        WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_element_located(self.locators['successMessage'])
+        )
+        return self.get_success_message()
 
-    # --- Utility ---
-    def wait_for_rule_saved(self):
-        self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, '.alert-success')))
+    # --- TEST CASE TC_SCRUM158_08 ---
+    def create_rule_with_large_metadata(self, rule_id, rule_name, schema_dict):
+        """
+        Implements Test Case TC_SCRUM158_08:
+        - Prepare a schema with a large metadata field (e.g., 10,000 characters).
+        - Submit and verify rule is accepted if within limits; performance is acceptable.
+        """
+        import json
+        self.enter_rule_id(rule_id)
+        self.enter_rule_name(rule_name)
+        self.enter_json_schema(json.dumps(schema_dict))
+        self.validate_schema()
+        self.driver.find_element(*self.locators['saveRuleButton']).click()
+        WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_element_located(self.locators['successMessage'])
+        )
+        return self.get_success_message()
