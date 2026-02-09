@@ -61,7 +61,7 @@ class TestLoginFunctionality:
         driver = ... # Provide Selenium WebDriver instance
         base_url = ... # Provide base URL
         login_page = LoginPage(driver, base_url)
-        result = login_page.test_remember_me_persistence(email="user@example.com", password="ValidPassword123")
+        result = login_page.test_remember_me_session_persistence(valid_email="user@example.com", valid_password="ValidPassword123")
         assert result is True
 
 class TestRuleConfiguration:
