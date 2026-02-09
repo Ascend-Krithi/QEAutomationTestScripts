@@ -72,3 +72,46 @@ class TestLoginPage(unittest.TestCase):
         self.login_page = LoginPage(self.driver)
         session_persistent = self.login_page.validate_session_persistence()
         self.assertTrue(session_persistent)
+
+# --- New Transfer API Test Cases ---
+
+from Pages.TransferAPIPage import TransferAPIPage
+
+class TestTransferAPIPage(unittest.TestCase):
+    def setUp(self):
+        # Provide the base_url as needed for your environment
+        self.base_url = "https://your-app-url.com"
+        self.api_page = TransferAPIPage(base_url=self.base_url)
+
+    def test_TC_158_09_valid_transfer_and_log(self):
+        """
+        TC-158-09: Submit a valid transfer payload and check backend log entry.
+        """
+        payload = {
+            "amount": 200.00,
+            "currency": "USD",
+            "source": "ACC123",
+            "destination": "ACC456",
+            "timestamp": "2024-06-01T10:00:00Z"
+        }
+        response = self.api_page.submit_transfer_payload(payload)
+        self.assertTrue(self.api_page.validate_currency_success(response))
+        confirmation = response.json().get("confirmation")
+        log_entry = self.api_page.query_backend_log_entry(confirmation)
+        self.assertIsNotNone(log_entry)
+
+    def test_TC_158_10_unsupported_currency_rejection(self):
+        """
+        TC-158-10: Submit payload with unsupported currency, validate rejection and error message.
+        """
+        payload = {
+            "amount": 100.00,
+            "currency": "XYZ",
+            "source": "ACC123",
+            "destination": "ACC456",
+            "timestamp": "2024-06-01T10:00:00Z"
+        }
+        response = self.api_page.submit_transfer_payload(payload)
+        self.assertTrue(self.api_page.validate_currency_rejection(response))
+        error_message = response.json().get("message", "")
+        self.assertIn("Unsupported currency", error_message)
