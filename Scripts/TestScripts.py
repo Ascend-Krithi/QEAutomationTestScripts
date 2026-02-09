@@ -1,7 +1,7 @@
-
 import unittest
 from Pages.LoginPage import LoginPage
 from Pages.RuleConfigurationPage import RuleConfigurationPage
+from Pages.TransferAPIPage import TransferAPIPage
 
 class TestLogin(unittest.TestCase):
     def setUp(self):
@@ -88,3 +88,43 @@ class TestRuleConfiguration(unittest.TestCase):
         expected_transferred = deposit_amount * 0.20
         self.assertEqual(deposit_result['transferred'], expected_transferred, msg=f"Expected {expected_transferred}, got {deposit_result['transferred']}")
         self.assertEqual(deposit_result['status'], 'completed')
+
+class TestTransferAPI(unittest.TestCase):
+    def setUp(self):
+        # Replace with actual API base URL and token
+        self.base_url = 'https://api.example.com'
+        self.auth_token = 'YOUR_AUTH_TOKEN'
+        self.transfer_api = TransferAPIPage(self.base_url, self.auth_token)
+
+    def test_TC_158_03_minimum_amount_transfer(self):
+        """
+        TestCase TC-158-03: Prepare JSON payload with minimum allowed amount (0.01), submit, expect success.
+        """
+        payload = {
+            "amount": 0.01,
+            "currency": "USD",
+            "source": "ACC123",
+            "destination": "ACC456",
+            "timestamp": "2024-06-01T10:00:00Z"
+        }
+        result = self.transfer_api.submit_transfer(payload)
+        self.assertEqual(result["status_code"], 200, f"Expected 200 OK, got {result['status_code']}")
+        self.assertTrue(result["success"], f"Expected success, got {result['error_message']}")
+        self.assertIn("result", result["response_json"], "Missing 'result' key in response JSON")
+        self.assertEqual(result["response_json"].get("result"), "success", f"Expected 'success', got {result['response_json'].get('result')}")
+
+    def test_TC_158_04_exceed_maximum_amount_transfer(self):
+        """
+        TestCase TC-158-04: Prepare JSON payload with amount exceeding maximum (1000000.00), submit, expect rejection with error message.
+        """
+        payload = {
+            "amount": 1000000.00,
+            "currency": "USD",
+            "source": "ACC123",
+            "destination": "ACC456",
+            "timestamp": "2024-06-01T10:00:00Z"
+        }
+        result = self.transfer_api.submit_transfer(payload)
+        self.assertFalse(result["success"], "Expected rejection for exceeding maximum amount")
+        self.assertNotEqual(result["error_message"], "", "Expected error message for rejection")
+        self.assertIn("Amount exceeds maximum limit", result["error_message"], f"Expected error message, got {result['error_message']}")
