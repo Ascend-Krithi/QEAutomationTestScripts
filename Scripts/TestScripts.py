@@ -1,4 +1,5 @@
-{Import necessary modules}
+# Import necessary modules
+from Pages.RuleConfigurationPage import RuleConfigurationPage
 
 class TestLoginFunctionality:
     def __init__(self, page):
@@ -12,4 +13,27 @@ class TestLoginFunctionality:
 
     async def test_remember_me_functionality(self):
         await self.login_page.navigate()
-        await self.login_page.fill_email('
+        await self.login_page.fill_email('')
+
+class TestRuleConfiguration:
+    def __init__(self, driver):
+        self.page = RuleConfigurationPage(driver)
+
+    def test_create_rule_schema_with_metadata(self):
+        # Prepare metadata
+        metadata = {'description': 'Transfer rule', 'tags': ['finance', 'auto']}
+        # Create schema with metadata
+        schema = self.page.create_rule_schema_with_metadata(metadata)
+        # Submit schema
+        success_msg = self.page.submit_schema()
+        assert 'success' in success_msg.lower(), f"Submission failed: {success_msg}"
+        # Retrieve rule and check metadata
+        rule_id = schema['ruleId']
+        assert self.page.retrieve_rule_and_check_metadata(rule_id, metadata)
+
+    def test_create_invalid_schema_missing_trigger(self):
+        # Create invalid schema missing 'trigger'
+        schema = self.page.create_invalid_schema_missing_trigger()
+        # Submit invalid schema and check error message
+        error_msg = self.page.submit_invalid_schema()
+        assert 'trigger' in error_msg.lower(), f"Expected error about missing trigger, got: {error_msg}"
