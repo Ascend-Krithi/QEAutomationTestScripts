@@ -1,4 +1,3 @@
-
 import pytest
 from Pages.RuleConfigurationPage import RuleConfigurationPage
 
@@ -34,3 +33,39 @@ class TestRuleConfiguration:
         assert 'Rule created successfully' in success_message, "Rule creation failed for large metadata field."
         # Optionally, add performance assertion if available
         # assert rule_page.last_operation_duration < 5, "Rule creation took too long with large metadata."
+
+    @pytest.mark.asyncio
+    async def test_recurring_interval_weekly_rule(self):
+        """TC_SCRUM158_03: Create a rule with recurring interval trigger (weekly) and verify scheduling logic."""
+        rule_page = RuleConfigurationPage()
+        await rule_page.navigate_to_rule_configuration()
+        await rule_page.create_recurring_rule(
+            trigger_type='recurring',
+            interval_value='weekly',
+            condition_operator='==',
+            condition_value=1,
+            action_account='G',
+            action_amount=1
+        )
+        scheduled = await rule_page.submit_rule_and_verify_schedule()
+        assert scheduled is True, "Rule was not scheduled for recurring weekly evaluation."
+
+    @pytest.mark.asyncio
+    async def test_missing_trigger_field_schema(self):
+        """TC_SCRUM158_04: Attempt to create rule with schema missing 'trigger' field and verify error handling."""
+        rule_page = RuleConfigurationPage()
+        await rule_page.navigate_to_rule_configuration()
+        # Example schema missing 'trigger' field
+        incomplete_schema = {
+            # 'trigger': 'manual',  # intentionally omitted
+            'condition': {
+                'operator': '==',
+                'value': 1
+            },
+            'action': {
+                'account': 'G',
+                'amount': 1
+            }
+        }
+        error_message = await rule_page.attempt_create_rule_with_incomplete_schema(incomplete_schema)
+        assert 'missing required field' in error_message.lower(), "Schema was not rejected for missing 'trigger' field."
