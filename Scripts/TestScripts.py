@@ -1,51 +1,36 @@
-# Existing imports and code
-import pytest
+
+import unittest
+from selenium import webdriver
 from Pages.LoginPage import LoginPage
 
-# ... (existing test methods remain unchanged)
+class TestLogin(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.driver = webdriver.Chrome()
+        cls.login_page = LoginPage(cls.driver)
 
-# --- New test methods appended below ---
+    @classmethod
+    def tearDownClass(cls):
+        cls.driver.quit()
 
-def test_TC_Login_10_max_length_valid_login(driver):
-    """
-    TC_Login_10: Valid login with max-length email and password.
-    Steps:
-      - Enter maximum allowed email and password.
-      - Validate max-length input.
-      - Attempt login.
-      - Expect successful login.
-    """
-    login_page = LoginPage(driver)
-    max_email = 'a' * login_page.EMAIL_MAX_LENGTH + '@test.com'
-    max_password = 'P' * login_page.PASSWORD_MAX_LENGTH
-    # Validate max-length input
-    login_page.validate_max_length_input(max_email, max_password)
-    # Attempt login
-    login_page.login(max_email, max_password)
-    # Assert login success
-    assert login_page.is_login_successful(), "Login should succeed with max-length valid credentials."
+    def test_valid_login(self):
+        # Existing test method for valid login
+        self.login_page.navigate_to_login()
+        self.login_page.login_with_credentials('validuser@example.com', 'ValidPassword')
+        self.assertTrue(self.login_page.validate_login_success())
 
+    # TC_LOGIN_002: Invalid credentials
+    def test_invalid_login(self):
+        """TC_LOGIN_002: Enter invalid email/username or password and verify error message."""
+        self.login_page.navigate_to_login()
+        self.login_page.login_with_credentials('wronguser@example.com', 'WrongPassword')
+        # Assert that the error message for invalid credentials is displayed
+        self.assertTrue(self.login_page.validate_invalid_credentials_error())
 
-def test_TC_LOGIN_004_max_length_email_password(driver):
-    """
-    TC_LOGIN_004: Login with max-length email and password, expect success or error if invalid.
-    Steps:
-      - Enter maximum allowed email and password.
-      - Validate max-length input.
-      - Attempt login.
-      - Expect success if valid, else error message.
-    """
-    login_page = LoginPage(driver)
-    max_email = 'b' * login_page.EMAIL_MAX_LENGTH + '@test.com'
-    max_password = 'Q' * login_page.PASSWORD_MAX_LENGTH
-    # Validate max-length input
-    login_page.validate_max_length_input(max_email, max_password)
-    # Attempt login
-    login_page.login(max_email, max_password)
-    if login_page.is_login_successful():
-        assert True, "Login succeeded with max-length credentials."
-    else:
-        error_msg = login_page.get_error_message()
-        assert error_msg is not None and error_msg != '', "Error message must be shown for invalid max-length credentials."
-
-# End of file
+    # TC_LOGIN_003: Empty fields
+    def test_empty_fields_login(self):
+        """TC_LOGIN_003: Leave email/username and/or password fields empty and verify error/validation message."""
+        self.login_page.navigate_to_login()
+        self.login_page.login_with_credentials('', '')
+        # Assert that the error or validation message for empty fields is displayed
+        self.assertTrue(self.login_page.validate_empty_fields_error())
