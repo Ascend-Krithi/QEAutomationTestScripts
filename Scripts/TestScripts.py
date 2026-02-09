@@ -49,3 +49,35 @@ def test_login_remember_me_session_persistence(driver):
     login_page.login_with_credentials(email, password, remember_me=True)
     session_persisted = login_page.verify_remember_me_persistence(login_url, email, password)
     assert session_persisted, "Session should persist and user should remain logged in."
+
+# TC_LOGIN_007: Forgot Password Flow
+def test_login_forgot_password_flow(driver):
+    """
+    1. Navigate to the login page
+    2. Click the 'Forgot Password' link
+    3. Verify presence of password recovery form
+    """
+    login_page = LoginPage(driver)
+    login_page.navigate_to_login_page("https://axos.example.com/login")
+    assert driver.current_url.endswith("/login"), "Login page should be displayed."
+    clicked = login_page.click_forgot_password_link()
+    assert clicked, "Should be able to click 'Forgot Password' link."
+    form_displayed = login_page.is_password_recovery_form_displayed()
+    assert form_displayed, "Password recovery form should be displayed."
+
+# TC_LOGIN_008: SQL Injection Attempt
+def test_login_sql_injection_attempt(driver):
+    """
+    1. Navigate to the login page
+    2. Enter SQL injection string in email/username and/or password fields
+    3. Click the 'Login' button
+    4. Verify error message 'Invalid credentials' is shown. No security breach occurs.
+    """
+    login_page = LoginPage(driver)
+    login_page.navigate_to_login_page("https://axos.example.com/login")
+    assert driver.current_url.endswith("/login"), "Login page should be displayed."
+    email_injection = "' OR 1=1;--"
+    password_injection = "' OR 1=1;--"
+    login_page.attempt_sql_injection_login(email_injection, password_injection)
+    error_valid = login_page.verify_invalid_credentials_error()
+    assert error_valid, "Error message 'Invalid credentials' should be shown and no security breach occurs."
