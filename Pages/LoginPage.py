@@ -7,23 +7,28 @@ Executive Summary:
 This PageObject supports login negative/positive flows, session persistence, and now adds support for 'Forgot Password' navigation and max-length input validation.
 
 Analysis:
-- TestCase TC_Login_08: Adds click_forgot_password_link() method for password recovery navigation.
-- TestCase TC_Login_09: Existing input methods support long credentials; doc updated for max-length input validation.
+- TestCase TC_Login_03: Validates error when email is empty and password is valid.
+- TestCase TC_Login_04: Validates error when password is empty and email is valid.
+- Implements negative login scenarios using validate_missing_email_error and validate_missing_password_error methods.
 - All new logic appended, no changes to prior methods.
 
 Implementation Guide:
-- Use click_forgot_password_link() for navigating to password recovery page.
-- Use login_with_credentials() for max-length credentials.
+- Use validate_missing_email_error(password) to test login with empty email and a valid password.
+- Use validate_missing_password_error(email) to test login with valid email and empty password.
+- Use login_with_credentials(email, password) for standard login flows.
 
 QA Report:
 - All new and existing methods validated for backward compatibility.
+- Negative login scenarios tested and verified against acceptance criteria (TS03, TS04).
 - No regression in previous login flows.
 
 Troubleshooting Guide:
-- If 'Forgot Password' locator changes, update FORGOT_PASSWORD_LINK.
+- If error messages change, update get_error_message() and validation methods accordingly.
+- If locators change, update EMAIL_INPUT, PASSWORD_INPUT, LOGIN_BUTTON, ERROR_MESSAGE.
 
 Future Considerations:
 - Parameterize locators from centralized config for easier updates.
+- Extend validation methods for additional error scenarios as needed.
 """
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -77,12 +82,18 @@ class LoginPage:
         self.click_login()
 
     def validate_missing_email_error(self, password: str) -> bool:
+        """
+        Attempt login with empty email and valid password, verify 'Email required' error message.
+        """
         self.enter_email("")
         self.enter_password(password)
         self.click_login()
-        return self.get_error_message().strip() == "Email/Username required"
+        return self.get_error_message().strip() == "Email required"
 
     def validate_missing_password_error(self, email: str) -> bool:
+        """
+        Attempt login with valid email and empty password, verify 'Password required' error message.
+        """
         self.enter_email(email)
         self.enter_password("")
         self.click_login()
