@@ -84,18 +84,51 @@ class LoginPage:
         # After reload, check if user is logged out
         return not self.is_login_successful()
 
+    # --- NEW METHODS FOR TC_LOGIN_005 and TC_LOGIN_006 ---
+    def login_with_empty_fields_and_check_error(self):
+        """
+        Attempts to login with empty email and password fields, returns error message.
+        For TC_LOGIN_005.
+        """
+        self.enter_email("")
+        self.enter_password("")
+        self.click_login()
+        return self.get_error_message()
+
+    def verify_remember_me_persistence(self, url, email, password):
+        """
+        Logs in with valid credentials and 'Remember Me' checked, clears session, reloads login page,
+        and verifies if user remains logged in (session persisted).
+        For TC_LOGIN_006.
+        Returns True if session persists, False otherwise.
+        """
+        self.login_with_credentials(email, password, remember_me=True)
+        # Simulate browser restart: close and reopen driver, or clear cookies and reload
+        self.driver.delete_all_cookies()
+        self.driver.get(url)
+        # If session persists, user should be redirected to dashboard, not login page
+        # Check for dashboard element or absence of login form
+        try:
+            self.wait.until_not(EC.visibility_of_element_located(self.EMAIL_INPUT))
+            return True
+        except:
+            return False
+
 # Executive Summary:
-# - LoginPage.py now supports explicit handling of 'Remember Me' checkbox and session expiration verification.
-# - All locators reference Locators.json for element identification.
+# - LoginPage.py now explicitly supports test cases TC_LOGIN_005 (empty fields, error message) and TC_LOGIN_006 ('Remember Me' persistence).
+# - Methods login_with_empty_fields_and_check_error and verify_remember_me_persistence added for end-to-end automation.
+# - All locators reference Locators.json for element identification (update if Locators.json changes).
 # - Robust methods for navigation, input, login, error handling, and session management.
 #
 # Detailed Analysis:
-# - Test cases require login with/without 'Remember Me', and verification of session expiration after browser restart.
+# - TC_LOGIN_005: Checks error feedback when login attempted with empty fields.
+# - TC_LOGIN_006: Validates session persistence after browser restart with 'Remember Me' checked.
 # - PageClass ensures input truncation to maximum length, error handling, and modular method structure.
 #
 # Implementation Guide:
-# - Use `login_with_credentials(email, password, remember_me)` for end-to-end login tests.
-# - Use `clear_session_and_reload(url)` to verify session expiration after browser restart.
+# - Use login_with_empty_fields_and_check_error() for TC_LOGIN_005.
+# - Use verify_remember_me_persistence(url, email, password) for TC_LOGIN_006.
+# - Use login_with_credentials(email, password, remember_me) for standard login flows.
 # - Ensure webdriver instance is properly initialized and passed.
 # - Update locator values from Locators.json if necessary.
 #
@@ -107,7 +140,7 @@ class LoginPage:
 # Troubleshooting Guide:
 # - If login fails unexpectedly, check locator values and post-login page element.
 # - If error message is not displayed, verify ERROR_MESSAGE selector and page behavior.
-# - If session expiration fails, ensure cookies are properly cleared.
+# - If session expiration/persistence fails, ensure cookies are properly cleared and 'Remember Me' logic is correct.
 #
 # Future Considerations:
 # - Add support for multi-factor authentication if required.
