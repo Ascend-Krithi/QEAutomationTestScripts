@@ -68,5 +68,21 @@ class TestScripts(unittest.TestCase):
         self.assertIsNotNone(error_msg, "Error message was not returned for missing trigger field.")
         self.assertIn("trigger", error_msg.lower(), "Error message does not indicate missing trigger field.")
 
+    def test_TC_SCRUM158_05_unsupported_trigger_type(self):
+        """TC_SCRUM158_05: Prepare a schema with unsupported trigger type (e.g., 'unsupported_type'). Submit the schema and verify error message is returned about unsupported type."""
+        rule_page = RuleConfigurationPage(self.driver)
+        schema_text = '{"trigger":{"type":"unsupported_type"},"conditions":[{"type":"amount","operator":"<","value":10}],"actions":[{"type":"transfer","account":"E","amount":10}]}'
+        error_msg = rule_page.submit_schema_and_check_error(schema_text)
+        self.assertIsNotNone(error_msg, "Schema with unsupported trigger type was not rejected.")
+        self.assertIn("unsupported", error_msg.lower(), "Error message does not mention unsupported trigger type.")
+
+    def test_TC_SCRUM158_06_maximum_allowed_conditions_actions(self):
+        """TC_SCRUM158_06: Prepare a schema with maximum allowed (e.g., 10) conditions and actions. Submit the schema and verify all are stored."""
+        rule_page = RuleConfigurationPage(self.driver)
+        schema_text = '{"trigger":{"type":"manual"},"conditions":[{"type":"amount","operator":"==","value":1},{"type":"amount","operator":"==","value":2},{"type":"amount","operator":"==","value":3},{"type":"amount","operator":"==","value":4},{"type":"amount","operator":"==","value":5},{"type":"amount","operator":"==","value":6},{"type":"amount","operator":"==","value":7},{"type":"amount","operator":"==","value":8},{"type":"amount","operator":"==","value":9},{"type":"amount","operator":"==","value":10}],"actions":[{"type":"transfer","account":"F1","amount":1},{"type":"transfer","account":"F2","amount":2},{"type":"transfer","account":"F3","amount":3},{"type":"transfer","account":"F4","amount":4},{"type":"transfer","account":"F5","amount":5},{"type":"transfer","account":"F6","amount":6},{"type":"transfer","account":"F7","amount":7},{"type":"transfer","account":"F8","amount":8},{"type":"transfer","account":"F9","amount":9},{"type":"transfer","account":"F10","amount":10}]}'
+        success_msg = rule_page.submit_schema_and_verify_storage(schema_text)
+        self.assertIsNotNone(success_msg, "Schema with maximum allowed conditions/actions was not accepted.")
+        self.assertTrue("success" in success_msg.lower() or "accepted" in success_msg.lower(), "Rule was not accepted as expected.")
+
 if __name__ == "__main__":
     unittest.main()
