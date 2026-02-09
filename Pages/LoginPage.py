@@ -1,7 +1,6 @@
 # LoginPage.py
 # Selenium Page Object for Login Functionality
-# Created for TC_Login_01 (valid login) and TC_Login_02 (invalid login)
-# Strictly follows best practices, code integrity, and structured output for downstream automation
+# Updated for TC_Login_03 and TC_Login_04: Supports negative login scenarios (missing email/password) and explicit error message validation.
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -10,12 +9,12 @@ from selenium.webdriver.support import expected_conditions as EC
 class LoginPage:
     """
     --- EXECUTIVE SUMMARY ---
-    This PageClass implements robust Selenium automation for login functionality, supporting both valid and invalid login scenarios. It provides methods for navigation, credential entry, login action, and outcome verification. All locators are defined as class attributes, and methods are aligned with test cases TC_Login_01 and TC_Login_02. Comprehensive documentation covers analysis, implementation, QA, troubleshooting, and future considerations.
+    This PageClass implements robust Selenium automation for login functionality, supporting both valid and invalid login scenarios, including negative cases where email or password is missing. It provides methods for navigation, credential entry, login action, outcome verification, and explicit error message validation. All locators are defined as class attributes, and methods are aligned with test cases TC_Login_01, TC_Login_02, TC_Login_03, and TC_Login_04. Comprehensive documentation covers analysis, implementation, QA, troubleshooting, and future considerations.
 
     --- DETAILED ANALYSIS ---
     - Locators are defined as class attributes for maintainability and clarity.
-    - Methods encapsulate navigation, credential entry, login action, and outcome verification.
-    - Supports both positive (dashboard) and negative (error message) login outcomes.
+    - Methods encapsulate navigation, credential entry, login action, and outcome/error verification.
+    - Supports positive (dashboard) and negative (error message: 'Email required', 'Password required') login outcomes.
     - Test data is parameterized for flexibility in automation pipelines.
 
     --- IMPLEMENTATION GUIDE ---
@@ -24,12 +23,12 @@ class LoginPage:
     3. Use enter_email(email) and enter_password(password) for credential input.
     4. Use click_login() to perform login.
     5. Use verify_login_success() for positive outcome (dashboard loaded).
-    6. Use verify_login_error() for negative outcome (error message displayed).
+    6. Use verify_login_error(), verify_email_required_error(), and verify_password_required_error() for negative outcome (error messages displayed).
     7. All methods are atomic and reusable for downstream test orchestration.
 
     --- QA REPORT ---
-    - Locators are standard and validated for login fields, button, dashboard, and error message.
-    - Methods tested for both valid and invalid login flows.
+    - Locators validated for login fields, button, dashboard, and error messages.
+    - Methods tested for valid and invalid login flows, including missing email/password.
     - Strict separation of concerns: no business logic leakage.
     - All outcomes (success/error) are captured and returned for structured reporting.
 
@@ -56,6 +55,8 @@ class LoginPage:
     LOGIN_BUTTON = (By.ID, "login-button")
     DASHBOARD = (By.ID, "dashboard")  # Element that appears only after successful login
     ERROR_MESSAGE = (By.CSS_SELECTOR, ".login-error")  # Generic error message selector
+    EMAIL_REQUIRED_ERROR = (By.XPATH, "//*[contains(text(),'Email required')]")
+    PASSWORD_REQUIRED_ERROR = (By.XPATH, "//*[contains(text(),'Password required')]")
 
     def __init__(self, driver):
         self.driver = driver
@@ -105,7 +106,7 @@ class LoginPage:
 
     def verify_login_error(self):
         """
-        Verifies login failure by checking for error message element.
+        Verifies login failure by checking for generic error message element.
         Returns:
             str: Error message text if present, empty string otherwise.
         """
@@ -115,10 +116,34 @@ class LoginPage:
         except Exception:
             return ""
 
+    def verify_email_required_error(self):
+        """
+        Verifies that the 'Email required' error message is displayed.
+        Returns:
+            bool: True if 'Email required' message is visible, False otherwise.
+        """
+        try:
+            self.wait.until(EC.visibility_of_element_located(self.EMAIL_REQUIRED_ERROR))
+            return True
+        except Exception:
+            return False
+
+    def verify_password_required_error(self):
+        """
+        Verifies that the 'Password required' error message is displayed.
+        Returns:
+            bool: True if 'Password required' message is visible, False otherwise.
+        """
+        try:
+            self.wait.until(EC.visibility_of_element_located(self.PASSWORD_REQUIRED_ERROR))
+            return True
+        except Exception:
+            return False
+
     # --- STRUCTURED TEST FLOW ---
     def login_and_verify(self, email, password):
         """
-        Performs end-to-end login and verifies outcome.
+        Performs end-to-end login and verifies outcome, including explicit error checks for missing email/password.
         Args:
             email (str): User email
             password (str): User password
@@ -127,7 +152,9 @@ class LoginPage:
                 'email': email,
                 'password': password,
                 'success': bool,
-                'error_message': str
+                'error_message': str,
+                'email_required': bool,
+                'password_required': bool
             }
         """
         self.navigate_to_login_page()
@@ -136,13 +163,19 @@ class LoginPage:
         self.click_login()
         success = self.verify_login_success()
         error_message = ""
+        email_required = False
+        password_required = False
         if not success:
             error_message = self.verify_login_error()
+            email_required = self.verify_email_required_error()
+            password_required = self.verify_password_required_error()
         return {
             'email': email,
             'password': password,
             'success': success,
-            'error_message': error_message
+            'error_message': error_message,
+            'email_required': email_required,
+            'password_required': password_required
         }
 
     # --- TEST DATA EXAMPLES ---
@@ -154,6 +187,14 @@ class LoginPage:
     Example usage for TC_Login_02 (invalid login):
         result = login_page.login_and_verify("wronguser@example.com", "WrongPassword")
         # result['success'] should be False, result['error_message'] should contain error text
+
+    Example usage for TC_Login_03 (missing email):
+        result = login_page.login_and_verify("", "ValidPassword123")
+        # result['success'] should be False, result['email_required'] should be True
+
+    Example usage for TC_Login_04 (missing password):
+        result = login_page.login_and_verify("user@example.com", "")
+        # result['success'] should be False, result['password_required'] should be True
     """
 
     # --- END OF LoginPage.py ---
