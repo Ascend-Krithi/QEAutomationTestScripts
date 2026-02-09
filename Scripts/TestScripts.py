@@ -2,10 +2,43 @@
 import unittest
 from selenium import webdriver
 from Pages.FinancialTransferPage import FinancialTransferPage
+from Pages.LoginPage import LoginPage
 
 class TestLogin(unittest.TestCase):
-    # Existing login-related test methods...
-    pass
+    @classmethod
+    def setUpClass(cls):
+        cls.driver = webdriver.Chrome()
+        cls.driver.implicitly_wait(10)
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.driver.quit()
+
+    def setUp(self):
+        self.page = LoginPage(self.driver)
+        self.base_url = "http://localhost:8000"  # Adjust as appropriate for your environment
+
+    def test_TC03_empty_username_and_password(self):
+        """
+        TC03: Submit empty username and password, expect error 'Username and password are required'.
+        """
+        self.page.navigate_to_login(self.base_url)
+        self.page.submit_empty_credentials()
+        self.assertTrue(
+            self.page.validate_error_for_empty_credentials("Username and password are required"),
+            "Expected error message for empty credentials not displayed."
+        )
+
+    def test_TC04_empty_username_valid_password(self):
+        """
+        TC04: Submit empty username and valid password, expect error 'Username is required'.
+        """
+        self.page.navigate_to_login(self.base_url)
+        self.page.submit_empty_username_valid_password("ValidPass123")
+        self.assertTrue(
+            self.page.validate_error_for_empty_credentials("Username is required"),
+            "Expected error message for empty username not displayed."
+        )
 
 class TestFinancialTransfer(unittest.TestCase):
     @classmethod
