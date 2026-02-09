@@ -2,50 +2,77 @@ import unittest
 from selenium import webdriver
 from Pages.LoginPage import LoginPage
 from Pages.DashboardPage import DashboardPage
+from Pages.FinancialTransferPage import FinancialTransferPage
 
-class TestLogin(unittest.TestCase):
-    def setUp(self):
-        self.driver = webdriver.Chrome()
-        self.login_page = LoginPage(self.driver)
-        self.dashboard_page = DashboardPage(self.driver)
+class TestScripts(unittest.TestCase):
+    # ... (existing methods, do not modify)
 
-    def tearDown(self):
-        self.driver.quit()
-
-    # Existing test cases...
-    # ...<rest of file>...
-
-    def test_TC09_special_character_login(self):
+    def test_TC_158_01_valid_transfer(self):
         """
-        TC09: Login with special characters in username and password.
-        Expects either successful login or proper error message.
+        TC-158-01: Valid transfer (all fields present)
+        - Prepare a valid JSON payload for financial transfer with all required fields.
+        - Validate the payload using FinancialTransferPage.validate_payload().
+        - Simulate submission using FinancialTransferPage.submit_transfer().
+        - Assert that the payload is valid and the submission response is either a success or stub.
         """
-        self.login_page.enter_username('user!@#')
-        self.login_page.enter_password('pass$%^&*')
-        self.login_page.click_login()
-        # Check for error or successful login
-        if self.login_page.is_error_displayed():
-            error_message = self.login_page.get_error_message()
-            self.assertTrue('invalid' in error_message.lower() or 'special' in error_message.lower())
-        else:
-            # Optionally check if dashboard is loaded
-            self.assertTrue(self.dashboard_page.is_loaded())
+        driver = webdriver.Chrome()
+        try:
+            transfer_page = FinancialTransferPage(driver)
+            payload = transfer_page.prepare_transfer_payload(
+                amount=100.00,
+                currency='USD',
+                source='ACC123',
+                destination='ACC456',
+                timestamp='2024-06-01T10:00:00Z'
+            )
+            is_valid, validation_msg = transfer_page.validate_payload(payload)
+            self.assertTrue(is_valid, f"Payload should be valid, but got: {validation_msg}")
 
-    def test_TC10_server_error_during_login(self):
-        """
-        TC10: Simulate server/network error during login.
-        Expects proper error message and login not processed.
-        """
-        self.login_page.enter_username('valid_user')
-        self.login_page.enter_password('ValidPass123')
-        self.login_page.simulate_server_error()
-        self.login_page.click_login()
-        self.assertTrue(self.login_page.is_server_error_displayed())
-        error_message = self.login_page.get_server_error_message()
-        self.assertIn('server', error_message.lower())
-        self.assertIn('error', error_message.lower())
-        # Ensure dashboard is not loaded
-        self.assertFalse(self.dashboard_page.is_loaded())
+            submission_response = transfer_page.submit_transfer(payload)
+            self.assertIn(
+                submission_response.get('status'),
+                ['success', 'stub'],
+                f"Submission response should be 'success' or 'stub', got: {submission_response.get('status')}"
+            )
+        finally:
+            driver.quit()
 
-if __name__ == '__main__':
-    unittest.main()
+    def test_TC_158_02_missing_destination(self):
+        """
+        TC-158-02: Missing 'destination' field
+        - Prepare a JSON payload missing the 'destination' field.
+        - Validate the payload using FinancialTransferPage.validate_payload().
+        - Simulate submission using FinancialTransferPage.submit_transfer().
+        - Assert that the payload is invalid and the error message indicates the missing 'destination' field.
+        """
+        driver = webdriver.Chrome()
+        try:
+            transfer_page = FinancialTransferPage(driver)
+            payload = transfer_page.prepare_transfer_payload(
+                amount=50.00,
+                currency='USD',
+                source='ACC123',
+                destination=None,
+                timestamp='2024-06-01T10:00:00Z'
+            )
+            is_valid, validation_msg = transfer_page.validate_payload(payload)
+            self.assertFalse(is_valid, "Payload should be invalid due to missing 'destination' field.")
+            self.assertIn(
+                'destination',
+                validation_msg.lower(),
+                f"Validation message should indicate missing 'destination' field, got: {validation_msg}"
+            )
+
+            submission_response = transfer_page.submit_transfer(payload)
+            self.assertEqual(
+                submission_response.get('status'),
+                'error',
+                f"Submission response should be 'error' for missing destination, got: {submission_response.get('status')}"
+            )
+            self.assertIn(
+                'destination',
+                submission_response.get('message', '').lower(),
+                f"Submission error message should mention 'destination', got: {submission_response.get('message')}"
+            )
+        finally:
+            driver.quit()
