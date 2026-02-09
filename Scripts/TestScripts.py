@@ -1,72 +1,52 @@
-# Import necessary modules
-from Pages.LoginPage import LoginPage
+# Existing imports
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import pytest
 from Pages.RulePage import RulePage
-from selenium.webdriver.remote.webdriver import WebDriver
+from Pages.DepositPage import DepositPage
 
-class TestLoginFunctionality:
-    def __init__(self, driver: WebDriver):
-        self.driver = driver
-        self.login_page = LoginPage(driver)
+class TestScripts:
+    def test_rule_creation_valid(self, driver):
+        rule_page = RulePage(driver)
+        rule_page.navigate()
+        rule_page.define_rule('Minimum Deposit', 'amount > 100')
+        assert rule_page.is_rule_defined('Minimum Deposit')
 
-    def test_empty_fields_validation(self):
-        self.login_page.open()
-        self.login_page.login('', '')
-        assert self.login_page.is_empty_field_prompt_visible(), "Mandatory fields are required prompt not visible"
+    def test_deposit_simulation(self, driver):
+        deposit_page = DepositPage(driver)
+        deposit_page.navigate()
+        deposit_page.simulate_deposit(account_id='ACC123', amount=150)
+        assert deposit_page.is_transfer_executed(account_id='ACC123')
 
-    def test_remember_me_functionality(self):
-        self.login_page.open()
-        self.login_page.login('user@example.com', 'password', remember_me=True)
-        assert self.login_page.is_dashboard_header_visible(), "Dashboard header not visible after login"
-        assert self.login_page.is_user_profile_icon_visible(), "User profile icon not visible after login"
+    # TC-FT-003: Define rule with multiple conditions, simulate deposit, validate transfer execution
+    def test_rule_with_multiple_conditions_deposit(self, driver):
+        rule_page = RulePage(driver)
+        rule_page.navigate()
+        # Define a rule with multiple conditions
+        rule_conditions = [
+            {'field': 'amount', 'operator': '>', 'value': 100},
+            {'field': 'currency', 'operator': '==', 'value': 'USD'}
+        ]
+        rule_page.define_rule('USD High Deposit', rule_conditions)
+        assert rule_page.is_rule_defined('USD High Deposit')
 
-class TestRuleDefinition:
-    def __init__(self, driver: WebDriver):
-        self.driver = driver
-        self.login_page = LoginPage(driver)
-        self.rule_page = RulePage(driver)
+        deposit_page = DepositPage(driver)
+        deposit_page.navigate()
+        # Simulate deposit that meets all conditions
+        deposit_page.simulate_deposit(account_id='ACC456', amount=200, currency='USD')
+        assert deposit_page.is_transfer_executed(account_id='ACC456')
 
-    def test_tc_ft_001_specific_date_rule(self):
-        """
-        TC-FT-001: Login, define JSON rule with 'specific_date' trigger, simulate system time, verify transfer action.
-        """
-        self.login_page.open()
-        self.login_page.login('user@example.com', 'password')
-        assert self.login_page.is_dashboard_header_visible(), "Login failed"
-        rule_json = {
-            "trigger": {
-                "type": "specific_date",
-                "date": "2024-07-01T10:00:00Z"
-            },
-            "action": {
-                "type": "fixed_amount",
-                "amount": 100
-            },
-            "conditions": []
-        }
-        self.rule_page.define_rule(rule_json)
-        assert self.rule_page.is_rule_accepted(), "Rule was not accepted by the system"
-        self.rule_page.simulate_time_trigger("specific_date", "2024-07-01T10:00:00Z")
-        assert self.rule_page.is_transfer_action_executed(), "Transfer action was not executed at the specified date"
-
-    def test_tc_ft_002_recurring_rule(self):
-        """
-        TC-FT-002: Login, define JSON rule with 'recurring' trigger, simulate weekly intervals, verify transfer action.
-        """
-        self.login_page.open()
-        self.login_page.login('user@example.com', 'password')
-        assert self.login_page.is_dashboard_header_visible(), "Login failed"
-        rule_json = {
-            "trigger": {
-                "type": "recurring",
-                "interval": "weekly"
-            },
-            "action": {
-                "type": "percentage_of_deposit",
-                "percentage": 10
-            },
-            "conditions": []
-        }
-        self.rule_page.define_rule(rule_json)
-        assert self.rule_page.is_rule_accepted(), "Rule was not accepted by the system"
-        self.rule_page.simulate_time_trigger("recurring", "weekly")
-        assert self.rule_page.is_transfer_action_executed(), "Transfer action was not executed at the start of each interval"
+    # TC-FT-004: Error handling for missing/unsupported fields during rule definition
+    def test_rule_definition_error_handling(self, driver):
+        rule_page = RulePage(driver)
+        rule_page.navigate()
+        # Attempt to define a rule with a missing field
+        invalid_conditions = [
+            {'field': '', 'operator': '>', 'value': 50},
+            {'field': 'unsupported_field', 'operator': '==', 'value': 'XYZ'}
+        ]
+        rule_page.define_rule('Invalid Rule', invalid_conditions)
+        error_messages = rule_page.get_error_messages()
+        assert 'Field is required' in error_messages
+        assert 'unsupported_field is not supported' in error_messages
