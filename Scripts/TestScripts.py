@@ -107,3 +107,41 @@ class TestRuleConfiguration:
         }
         rejection_message = self.rule_page.validate_sql_injection(rule_data)
         assert rejection_message == "Rule rejected due to SQL injection."
+
+    def test_store_and_retrieve_rule(self):
+        """
+        Test Case TC-FT-009
+        Steps:
+        1. Create and store a valid rule.
+        2. Retrieve the rule from backend.
+        Expected: Rule is stored in PostgreSQL and retrieved rule matches the original input.
+        """
+        rule_json = {
+            "trigger": {"type": "specific_date", "date": "2024-07-01T10:00:00Z"},
+            "action": {"type": "fixed_amount", "amount": 100},
+            "conditions": []
+        }
+        creation_result = self.rule_page.create_rule(rule_json)
+        assert creation_result == "Rule is accepted by the system."
+        rules = self.rule_page.verify_existing_rules()
+        assert any("specific_date" in rule and "100" in rule for rule in rules)
+
+    def test_after_deposit_rule_unconditional_transfer(self):
+        """
+        Test Case TC-FT-010
+        Steps:
+        1. Define a rule with an empty conditions array.
+        2. Trigger the rule with a deposit.
+        Expected: Rule is accepted and executes unconditionally when triggered; transfer is executed without checking any conditions.
+        """
+        rule_json = {
+            "trigger": {"type": "after_deposit"},
+            "action": {"type": "fixed_amount", "amount": 100},
+            "conditions": []
+        }
+        creation_result = self.rule_page.create_rule(rule_json)
+        assert creation_result == "Rule is accepted by the system."
+        deposit_result = self.rule_page.simulate_deposit(1000)
+        assert "success" in deposit_result.lower()
+        transfer_validation = self.rule_page.validate_transfer_action(expected_amount=100)
+        assert transfer_validation is True
