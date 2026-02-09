@@ -116,3 +116,36 @@ def test_login_invalid_credentials(driver):
         pytest.fail("Timeout waiting for error message during invalid login flow.")
     except Exception as e:
         pytest.fail(f"Unexpected error during invalid login: {e}")
+
+# --- TC_LOGIN_007: Forgot Password flow ---
+def test_forgot_password_flow(driver):
+    """
+    TC_LOGIN_007: Validate the Forgot Password flow.
+    Steps:
+    1. Navigate to login page.
+    2. Click 'Forgot Password'.
+    3. Verify password recovery form is displayed.
+    """
+    login_page = LoginPage(driver)
+    login_page.navigate_to_login_page(LOGIN_URL)
+    login_page.click_forgot_password()
+    assert login_page.is_password_recovery_form_displayed(), "Password recovery form was not displayed after clicking 'Forgot Password'."
+
+# --- TC_LOGIN_008: SQL Injection validation ---
+def test_sql_injection_login(driver):
+    """
+    TC_LOGIN_008: Validate login form security against SQL Injection.
+    Steps:
+    1. Navigate to login page.
+    2. Enter SQL injection string (' OR 1=1;--') into email and/or password fields.
+    3. Click login.
+    4. Verify error message is displayed and no security breach occurs.
+    """
+    login_page = LoginPage(driver)
+    login_page.navigate_to_login_page(LOGIN_URL)
+    email_injection = "' OR 1=1;--"
+    password_injection = "' OR 1=1;--"
+    result = login_page.test_sql_injection(email_injection, password_injection)
+    assert result["fields_accept_input"], "SQL Injection input was not accepted in fields as expected."
+    assert "Invalid credentials" in result["error_message"], "Expected error message for SQL Injection not found."
+    assert not result["security_breach_detected"], "Security breach detected after SQL Injection attempt."
