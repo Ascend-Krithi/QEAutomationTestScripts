@@ -9,20 +9,21 @@ class LoginPage:
     Selenium PageClass for Login Page
 
     Executive Summary:
-    This PageClass automates login functionality for both positive and negative scenarios, enabling robust test coverage for TC_Login_01 (valid login, expects dashboard) and TC_Login_02 (invalid login, expects error message). It adheres to strict Selenium Python standards, ensuring code integrity and compatibility with downstream automation pipelines.
+    This PageClass automates login functionality for both positive and negative scenarios, enabling robust test coverage for TC_Login_03 (empty email, valid password, expects 'Email required' error) and TC_Login_04 (valid email, empty password, expects 'Password required' error). It adheres to strict Selenium Python standards, ensuring code integrity and compatibility with downstream automation pipelines.
 
     Detailed Analysis:
     - Locators follow repository conventions and are organized for maintainability.
     - Methods cover navigation, credential entry, login action, and outcome verification.
-    - Handles both valid and invalid login flows, including error feedback.
+    - Handles negative login flows, including error feedback for empty fields.
     - Synchronization and error handling are implemented for reliability.
 
     Implementation Guide:
     1. Instantiate LoginPage with a Selenium WebDriver instance.
     2. Use navigate_to_login() if navigation is required.
     3. Use login_with_credentials(email, password) for positive/negative tests.
-    4. Use is_dashboard_redirected() to verify successful login.
-    5. Use get_error_message() to validate error feedback for invalid login.
+    4. Use login_with_empty_email(valid_password) for TC_Login_03.
+    5. Use login_with_empty_password(valid_email) for TC_Login_04.
+    6. Use get_error_message() to validate error feedback for invalid login.
 
     Quality Assurance Report:
     - Locators validated against UI and repository standards.
@@ -95,9 +96,37 @@ class LoginPage:
         self.enter_password(password)
         self.click_login()
 
+    def login_with_empty_email(self, valid_password):
+        """
+        Leaves email field empty, enters valid password, clicks login. For TC_Login_03.
+        """
+        self.enter_email("")
+        self.enter_password(valid_password)
+        self.click_login()
+        return self.get_error_message()
+
+    def login_with_empty_password(self, valid_email):
+        """
+        Enters valid email, leaves password field empty, clicks login. For TC_Login_04.
+        """
+        self.enter_email(valid_email)
+        self.enter_password("")
+        self.click_login()
+        return self.get_error_message()
+
+    def get_error_message(self):
+        """
+        Returns error message displayed on login failure (TC_Login_03/TC_Login_04).
+        """
+        try:
+            error_elem = self.wait.until(EC.visibility_of_element_located(self.ERROR_MESSAGE))
+            return error_elem.text.strip()
+        except TimeoutException:
+            return None
+
     def is_dashboard_redirected(self):
         """
-        Verifies if dashboard is loaded after login (TC_Login_01).
+        Verifies if dashboard is loaded after login.
         Returns True if dashboard indicator is present, False otherwise.
         """
         try:
@@ -105,16 +134,6 @@ class LoginPage:
             return True
         except TimeoutException:
             return False
-
-    def get_error_message(self):
-        """
-        Returns error message displayed on login failure (TC_Login_02).
-        """
-        try:
-            error_elem = self.wait.until(EC.visibility_of_element_located(self.ERROR_MESSAGE))
-            return error_elem.text.strip()
-        except TimeoutException:
-            return None
 
     def login_and_verify(self, email, password):
         """
