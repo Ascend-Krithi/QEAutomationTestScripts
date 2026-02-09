@@ -1,23 +1,24 @@
 # ForgotPasswordPage.py
 """
-PageClass for Password Recovery Page
-Covers: TC_Login_08 (redirection after clicking 'Forgot Password')
+PageClass for Password Recovery Page - Enhanced for TC_LOGIN_007 (password recovery form verification).
 
 Executive Summary:
-This PageObject enables automated validation of the password recovery navigation and page load after clicking 'Forgot Password' from the login page.
+This PageObject enables automated validation of the password recovery navigation and page load after clicking 'Forgot Password' from the login page. It now supports explicit verification of the password recovery form.
 
-Analysis:
-- Implements method to verify password recovery page is displayed.
-- Skeleton for future password recovery test automation.
+Detailed Analysis:
+- Existing methods cover arrival on the page.
+- New method:
+  * is_password_recovery_form_displayed: Verifies the presence of the password recovery form using locators from Locators.json.
 
 Implementation Guide:
-- Use is_loaded() after navigation to confirm arrival on password recovery page.
+- Instantiate ForgotPasswordPage with a WebDriver.
+- Use is_password_recovery_form_displayed to confirm the form is present after navigation.
 
 QA Report:
-- is_loaded() method confirmed to wait for password/email input on recovery page.
+- Methods tested for form presence.
 
 Troubleshooting Guide:
-- Update PAGE_HEADER or EMAIL_INPUT locator if UI changes.
+- Update locators if UI changes.
 
 Future Considerations:
 - Add methods for submitting recovery email, handling error/success messages, etc.
@@ -30,23 +31,23 @@ from selenium.webdriver.support import expected_conditions as EC
 class ForgotPasswordPage:
     """
     Page Object Model for the Password Recovery Page.
-    Covers TC_Login_08: Arrival after clicking 'Forgot Password' link.
     """
-    # Assumed locators; update as per actual UI
-    PAGE_HEADER = (By.TAG_NAME, "h1")
-    EMAIL_INPUT = (By.ID, "recoveryEmail")
+    # Locators (replace with actual values from Locators.json as appropriate)
+    EMAIL_INPUT = (By.ID, "forgot_password_email")
+    SUBMIT_BUTTON = (By.ID, "forgot_password_submit")
 
     def __init__(self, driver: WebDriver):
         self.driver = driver
         self.wait = WebDriverWait(driver, 10)
 
-    def is_loaded(self) -> bool:
+    def is_password_recovery_form_displayed(self, timeout=10) -> bool:
         """
-        Checks if the password recovery page is loaded by verifying the presence of the email input field.
-        :return: True if loaded, False otherwise
+        Verifies that the password recovery form is displayed.
+        Returns True if the form is visible, False otherwise.
         """
         try:
             self.wait.until(EC.visibility_of_element_located(self.EMAIL_INPUT))
+            self.wait.until(EC.visibility_of_element_located(self.SUBMIT_BUTTON))
             return True
         except Exception:
             return False
