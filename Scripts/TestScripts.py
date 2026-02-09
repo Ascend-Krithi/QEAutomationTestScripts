@@ -1,4 +1,8 @@
-import pytest
+
+import selenium.webdriver as webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 class TestLoginFunctionality:
     def __init__(self, page):
@@ -12,50 +16,67 @@ class TestLoginFunctionality:
 
     async def test_remember_me_functionality(self):
         await self.login_page.navigate()
-        await self.login_page.fill_email('
+        await self.login_page.fill_email('')
 
-    # TC-FT-003: Rule with multiple conditions
-    async def test_rule_with_multiple_conditions(self):
-        # Step 1: Define a rule with multiple conditions
+class TestRuleManagement:
+    def __init__(self, driver):
+        self.driver = driver
+        self.rule_page = RuleManagementPage(driver)
+
+    async def test_create_rule_multiple_conditions_TC_FT_003(self):
+        # Step 1: Define a rule with multiple conditions (balance >= 1000, source = 'salary')
+        await self.rule_page.navigate_to_rule_management()
         rule_data = {
-            "trigger": {"type": "after_deposit"},
-            "action": {"type": "fixed_amount", "amount": 50},
-            "conditions": [
-                {"type": "balance_threshold", "operator": ">=", "value": 1000},
-                {"type": "transaction_source", "value": "salary"}
-            ]
+            'name': 'Salary Transfer Rule',
+            'trigger_type': 'deposit',
+            'conditions': [
+                {'field': 'balance', 'operator': '>=', 'value': 1000},
+                {'field': 'source', 'operator': '=', 'value': 'salary'}
+            ],
+            'action_type': 'transfer',
+            'action_params': {'amount': 500}
         }
-        response = await self.page.submit_rule(rule_data)
-        assert response["status"] == "accepted"
+        await self.rule_page.create_new_rule(rule_data)
+        await self.rule_page.submit_rule()
 
-        # Step 2: Simulate a deposit from 'salary' when balance is 900
-        deposit_data_low = {"balance": 900, "deposit": 100, "source": "salary"}
-        result_low = await self.page.simulate_deposit(deposit_data_low)
-        assert result_low["transfer_executed"] is False
+        # Step 2: Simulate a deposit from 'salary' when balance is 900; expect transfer NOT executed
+        await self.rule_page.simulate_deposit(source='salary', amount=900)
+        transfer_executed = await self.rule_page.check_transfer_executed()
+        assert not transfer_executed, 'Transfer should NOT be executed when balance < 1000'
 
-        # Step 3: Simulate a deposit from 'salary' when balance is 1200
-        deposit_data_high = {"balance": 1200, "deposit": 100, "source": "salary"}
-        result_high = await self.page.simulate_deposit(deposit_data_high)
-        assert result_high["transfer_executed"] is True
+        # Step 3: Simulate a deposit from 'salary' when balance is 1200; expect transfer executed
+        await self.rule_page.simulate_deposit(source='salary', amount=1200)
+        transfer_executed = await self.rule_page.check_transfer_executed()
+        assert transfer_executed, 'Transfer should be executed when balance >= 1000 and source is salary'
 
-    # TC-FT-004: Validation error scenarios
-    async def test_rule_missing_trigger_type(self):
-        # Step 1: Submit a rule with missing trigger type
+    async def test_submit_rule_missing_invalid_fields_TC_FT_004(self):
+        await self.rule_page.navigate_to_rule_management()
+        # Step 1: Submit a rule with missing trigger type; expect error for missing required field
         rule_data_missing_trigger = {
-            "action": {"type": "fixed_amount", "amount": 100},
-            "conditions": []
+            'name': 'Missing Trigger Rule',
+            'trigger_type': '',
+            'conditions': [
+                {'field': 'balance', 'operator': '>=', 'value': 1000}
+            ],
+            'action_type': 'transfer',
+            'action_params': {'amount': 100}
         }
-        response = await self.page.submit_rule(rule_data_missing_trigger)
-        assert response["status"] == "error"
-        assert "missing required field" in response["message"].lower()
+        await self.rule_page.create_new_rule(rule_data_missing_trigger)
+        await self.rule_page.submit_rule()
+        error_msg = await self.rule_page.get_error_message()
+        assert 'trigger type is required' in error_msg.lower(), 'Expected error for missing trigger type'
 
-    async def test_rule_unsupported_action_type(self):
-        # Step 2: Submit a rule with unsupported action type
-        rule_data_unsupported_action = {
-            "trigger": {"type": "specific_date", "date": "2024-07-01T10:00:00Z"},
-            "action": {"type": "unknown_action"},
-            "conditions": []
+        # Step 2: Submit a rule with unsupported action type; expect error for unsupported action type
+        rule_data_invalid_action = {
+            'name': 'Invalid Action Rule',
+            'trigger_type': 'deposit',
+            'conditions': [
+                {'field': 'balance', 'operator': '>=', 'value': 1000}
+            ],
+            'action_type': 'unsupported_action',
+            'action_params': {'amount': 100}
         }
-        response = await self.page.submit_rule(rule_data_unsupported_action)
-        assert response["status"] == "error"
-        assert "unsupported action type" in response["message"].lower()
+        await self.rule_page.create_new_rule(rule_data_invalid_action)
+        await self.rule_page.submit_rule()
+        error_msg = await self.rule_page.get_error_message()
+        assert 'unsupported action type' in error_msg.lower(), 'Expected error for unsupported action type'
