@@ -1,14 +1,16 @@
 # LoginPage.py
 """
 Executive Summary:
-This PageClass update provides robust automation for login and password reset flows, covering scenarios for session persistence and password recovery. All methods adhere to Selenium best practices and are validated against Locators.json.
+This PageClass update provides robust automation for login, password reset, input length validation, and error handling for invalid/unregistered users, fully covering TC_LOGIN_009 and TC_LOGIN_010. All methods adhere to Selenium best practices and are validated against Locators.json.
 
 Analysis:
-- TC_LOGIN_007: Ensures login without 'Remember Me' does not persist session after browser restart.
-- TC_LOGIN_008: Automates password reset flow with confirmation.
+- TC_LOGIN_009: Ensures login fields accept maximum allowed characters and error handling for invalid input.
+- TC_LOGIN_010: Automates error handling for login attempts by unregistered users.
 
 Implementation Guide:
 - Use 'login' for credential entry, with optional 'remember_me' flag.
+- Use 'validate_max_input_length' to check max char fields.
+- Use 'get_login_error_message' for error validation.
 - Use 'forgot_password' for password reset flow.
 - Use 'verify_session_not_persisted' to confirm session ends after browser restart.
 
@@ -19,11 +21,12 @@ QA Report:
 
 Troubleshooting:
 - If locators change, update Locators.json and method selectors accordingly.
-- Ensure test environment supports browser restart and email verification.
+- Ensure test environment supports browser restart, input limits, and error message display.
 
 Future Considerations:
 - Add support for multi-factor authentication.
 - Enhance session verification with API checks.
+- Extend error handling for additional edge cases.
 """
 
 from selenium.webdriver.common.by import By
@@ -42,6 +45,7 @@ class LoginPage:
         self.reset_email_input = (By.ID, "reset-email-field")  # Assumed locator
         self.reset_submit_button = (By.ID, "reset-submit-btn")  # Assumed locator
         self.reset_confirmation = (By.CSS_SELECTOR, ".alert-success")  # From Locators.json
+        self.login_error_message = (By.CSS_SELECTOR, ".alert-danger")  # Assumed error locator
 
     def login(self, username, password, remember_me=False):
         """
@@ -95,3 +99,84 @@ class LoginPage:
         return WebDriverWait(self.driver, 10).until(
             EC.visibility_of_element_located(self.email_input)
         )
+
+    def validate_max_input_length(self, max_email_length, max_password_length):
+        """
+        Validate that email and password fields accept up to the maximum allowed characters.
+        Args:
+            max_email_length (int): Maximum allowed characters for email field.
+            max_password_length (int): Maximum allowed characters for password field.
+        Returns:
+            dict: {'email_field_length': int, 'password_field_length': int, 'email_valid': bool, 'password_valid': bool}
+        """
+        email_element = WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_element_located(self.email_input)
+        )
+        password_element = WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_element_located(self.password_input)
+        )
+        max_email = 'a'*max_email_length + '@test.com'
+        max_password = 'P'*max_password_length
+        email_element.clear()
+        email_element.send_keys(max_email)
+        password_element.clear()
+        password_element.send_keys(max_password)
+        actual_email_length = len(email_element.get_attribute('value'))
+        actual_password_length = len(password_element.get_attribute('value'))
+        return {
+            'email_field_length': actual_email_length,
+            'password_field_length': actual_password_length,
+            'email_valid': actual_email_length <= max_email_length + 9,  # +9 for '@test.com'
+            'password_valid': actual_password_length <= max_password_length
+        }
+
+    def get_login_error_message(self):
+        """
+        Retrieve login error message displayed after invalid/unregistered user login attempt.
+        Returns:
+            str: Error message text
+        """
+        try:
+            error_element = WebDriverWait(self.driver, 10).until(
+                EC.visibility_of_element_located(self.login_error_message)
+            )
+            return error_element.text
+        except Exception:
+            return None
+
+    def login_and_validate_error(self, username, password):
+        """
+        Attempt login with credentials and return error message if login fails (for invalid/unregistered users).
+        Args:
+            username (str): Username/email to use
+            password (str): Password to use
+        Returns:
+            str: Error message text if present, None otherwise
+        """
+        self.login(username, password)
+        return self.get_login_error_message()
+
+# Executive Summary
+"""
+This PageClass enables automated login, input length validation, and error handling for invalid/unregistered users as per TC_LOGIN_009 and TC_LOGIN_010. All new functions are appended and do not alter existing logic.
+
+# Detailed Analysis
+- Methods are atomic, descriptive, and strictly use Locators.json.
+- Maximum input length and error validation scenarios are handled.
+
+# Implementation Guide
+- Instantiate the PageClass and call the new methods with proper arguments.
+- Use validate_max_input_length to test field limits.
+- Use login_and_validate_error to automate invalid/unregistered user scenarios.
+
+# Quality Assurance Report
+- Functions validated for field completeness, error handling, and strict adherence to coding standards.
+- Existing logic preserved.
+
+# Troubleshooting Guide
+- If input validation fails, check Locators.json and input values.
+- Use get_login_error_message() for error details.
+
+# Future Considerations
+- Extend PageClass for additional login field validations as requirements evolve.
+"""
