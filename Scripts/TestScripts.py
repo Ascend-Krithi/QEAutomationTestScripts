@@ -1,4 +1,3 @@
-
 import unittest
 from RuleConfigurationPage import RuleConfigurationPage
 
@@ -55,6 +54,32 @@ class TestRuleConfiguration(unittest.TestCase):
         with self.assertRaises(ValueError) as context:
             rule_page.define_rule(rule_unsupported_action)
         self.assertIn('unsupported action', str(context.exception).lower())
+
+    def test_define_percentage_rule_TC_FT_005(self):
+        """TC-FT-005: Define a rule for 10% of deposit action and verify transfer."""
+        driver = self._get_driver()  # You must implement this method to return a Selenium WebDriver instance
+        rule_page = RuleConfigurationPage(driver)
+        rule_page.define_percentage_rule(10)
+        self.assertTrue(rule_page.verify_rule_accepted(), "Rule should be accepted.")
+        rule_page.simulate_deposit(500)
+        rule_page.verify_transfer_executed(50)
+
+    def test_define_currency_conversion_rule_TC_FT_006(self):
+        """TC-FT-006: Define a rule with future rule type 'currency_conversion' and verify acceptance/rejection."""
+        driver = self._get_driver()  # You must implement this method to return a Selenium WebDriver instance
+        rule_page = RuleConfigurationPage(driver)
+        feedback = rule_page.define_currency_conversion_rule('EUR', 100)
+        self.assertIn(feedback, ['Accepted', 'No feedback received.'], "System should accept or gracefully reject with clear message.")
+        # Optionally re-run TC-FT-005 to verify existing rules still function
+        rule_page.define_percentage_rule(10)
+        self.assertTrue(rule_page.verify_rule_accepted(), "Existing rule should still be accepted.")
+        rule_page.simulate_deposit(500)
+        rule_page.verify_transfer_executed(50)
+
+    def _get_driver(self):
+        """Instantiate and return Selenium WebDriver. You must implement browser setup and teardown."""
+        # Placeholder: Implement your WebDriver setup here
+        pass
 
 if __name__ == '__main__':
     unittest.main()
