@@ -128,3 +128,30 @@ class TestTransferAPI(unittest.TestCase):
         self.assertFalse(result["success"], "Expected rejection for exceeding maximum amount")
         self.assertNotEqual(result["error_message"], "", "Expected error message for rejection")
         self.assertIn("Amount exceeds maximum limit", result["error_message"], f"Expected error message, got {result['error_message']}")
+
+    def test_TC_158_05_transfer_with_extra_field(self):
+        """
+        TestCase TC-158-05: Prepare a valid JSON payload with an additional 'note' field, submit to /transfer endpoint, expect transfer completes successfully and note field is ignored or logged.
+        """
+        payload = {
+            "amount": 100.00,
+            "currency": "USD",
+            "source": "ACC123",
+            "destination": "ACC456",
+            "timestamp": "2024-06-01T10:00:00Z"
+        }
+        result = self.transfer_api.submit_transfer_with_extra_field(payload)
+        self.assertEqual(result["status_code"], 200, f"Expected 200 OK, got {result['status_code']}")
+        self.assertTrue(result["success"], f"Expected success, got {result['error_message']}")
+        self.assertIn("result", result["response_json"], "Missing 'result' key in response JSON")
+        self.assertEqual(result["response_json"].get("result"), "success", f"Expected 'success', got {result['response_json'].get('result')}")
+        self.assertIn(result["note_handling"], ["ignored", "logged"], f"Expected note_handling to be 'ignored' or 'logged', got {result['note_handling']}")
+
+    def test_TC_158_06_malformed_json_transfer(self):
+        """
+        TestCase TC-158-06: Prepare a malformed JSON payload (missing closing brace), submit to /transfer endpoint, expect API returns error 'Invalid JSON format'.
+        """
+        malformed_payload = '{"amount": 100.00, "currency": "USD", "source": "ACC123", "destination": "ACC456", "timestamp": "2024-06-01T10:00:00Z"'
+        result = self.transfer_api.submit_malformed_json_transfer(malformed_payload)
+        self.assertFalse(result["success"], "Expected API to reject malformed JSON payload")
+        self.assertIn("Invalid JSON format", result["error_message"], f"Expected error 'Invalid JSON format', got {result['error_message']}")
