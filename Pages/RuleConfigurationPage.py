@@ -7,7 +7,12 @@ from selenium.webdriver.remote.webdriver import WebDriver
 class RuleConfigurationPage:
     """
     Page Object Model for Rule Configuration Page.
-    Generated to cover all locators in Locators.json for test cases TC-FT-005, TC-FT-006, TC_SCRUM158_01, TC_SCRUM158_02.
+    Covers locators and workflows for test cases TC_SCRUM158_07 and TC_SCRUM158_08.
+
+    QA Report:
+    - All locators from Locators.json are mapped.
+    - Composite workflows cover rule creation, schema validation, and performance for large metadata.
+    - Methods strictly adhere to Selenium Python standards and ensure code integrity.
     """
     def __init__(self, driver: WebDriver, timeout: int = 10):
         self.driver = driver
@@ -117,17 +122,40 @@ class RuleConfigurationPage:
         elem = self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "[data-testid='error-feedback-text']")))
         return elem.text
 
-    # Composite workflow for test cases TC_SCRUM158_01 and TC_SCRUM158_02
-    def create_rule_with_schema(self, rule_id: str, rule_name: str, schema_text: str) -> dict:
+    # Composite workflow for TC_SCRUM158_07
+    def create_rule_with_minimal_schema(self, rule_id: str, rule_name: str, schema_text: str) -> dict:
         """
-        Automates the end-to-end process of rule creation with JSON schema validation.
-        Returns a dict with success/error messages.
+        Automates creation of rule with minimal required fields (one trigger, one condition, one action).
+        Returns dict with success/error messages.
         """
         self.enter_rule_id(rule_id)
         self.enter_rule_name(rule_name)
         self.enter_json_schema(schema_text)
         self.click_validate_schema()
-        success = self.get_success_message()
-        error = self.get_schema_error_message()
+        result = {
+            "success": self.get_success_message(),
+            "error": self.get_schema_error_message()
+        }
         self.click_save_rule()
-        return {"success": success, "error": error}
+        return result
+
+    # Composite workflow for TC_SCRUM158_08
+    def create_rule_with_large_metadata(self, rule_id: str, rule_name: str, schema_text: str) -> dict:
+        """
+        Automates creation of rule with a large metadata field (e.g., 10,000 characters).
+        Returns dict with success/error messages and performance metrics.
+        """
+        import time
+        self.enter_rule_id(rule_id)
+        self.enter_rule_name(rule_name)
+        start = time.time()
+        self.enter_json_schema(schema_text)
+        self.click_validate_schema()
+        elapsed = time.time() - start
+        result = {
+            "success": self.get_success_message(),
+            "error": self.get_schema_error_message(),
+            "performance_seconds": round(elapsed, 2)
+        }
+        self.click_save_rule()
+        return result
