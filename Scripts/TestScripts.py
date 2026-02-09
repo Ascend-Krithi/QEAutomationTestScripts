@@ -3,6 +3,7 @@ from RuleConfigurationPage import RuleConfigurationPage
 from Pages.LoginPage import LoginPage
 from Pages.ForgotPasswordPage import ForgotPasswordPage
 from selenium import webdriver
+from Pages.TransferAPIPage import TransferAPIPage
 
 class TestRuleConfiguration(unittest.TestCase):
 
@@ -59,6 +60,33 @@ class TestRuleConfiguration(unittest.TestCase):
             self.assertIn("Unable to connect", error_message)
         finally:
             driver.quit()
+
+    # --- New API Automation Tests ---
+    def test_TC158_03_transfer_minimum_amount(self):
+        """TC-158-03: Submit minimum allowed amount and expect successful transfer."""
+        api_page = TransferAPIPage(base_url="http://example.com/api")  # Replace with actual API base URL
+        payload = {
+            "amount": 0.01,
+            "currency": "USD",
+            "source": "ACC123",
+            "destination": "ACC456",
+            "timestamp": "2024-06-01T10:00:00Z"
+        }
+        response = api_page.submit_transfer_payload(payload)
+        self.assertTrue(api_page.validate_transfer_success(response), "Transfer with minimum amount should succeed.")
+
+    def test_TC158_04_transfer_exceed_max_amount(self):
+        """TC-158-04: Submit amount exceeding maximum allowed and expect rejection."""
+        api_page = TransferAPIPage(base_url="http://example.com/api")  # Replace with actual API base URL
+        payload = {
+            "amount": 1000000.00,
+            "currency": "USD",
+            "source": "ACC123",
+            "destination": "ACC456",
+            "timestamp": "2024-06-01T10:00:00Z"
+        }
+        response = api_page.submit_transfer_payload(payload)
+        self.assertTrue(api_page.validate_transfer_rejection(response), "Transfer exceeding max amount should be rejected.")
 
 if __name__ == "__main__":
     unittest.main()
