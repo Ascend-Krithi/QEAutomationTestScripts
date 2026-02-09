@@ -115,3 +115,33 @@ class TestRuleConfiguration:
         assert result == "accepted" or isinstance(result, str), f"Unexpected result or error message: {result}"
         # Existing rules should still execute
         assert self.rule_page.verify_existing_rules_execution(), "Existing rules did not function as expected after future rule type test."
+
+    # TC-FT-009: Create and store a rule with specific_date trigger, fixed_amount action, empty conditions; retrieve and validate
+    def test_create_and_retrieve_specific_date_rule(self):
+        rule_name = "TC-FT-009-SpecificDateRule"
+        trigger_type = "specific_date"
+        action_type = "fixed_amount"
+        conditions = []
+        # Create rule
+        self.rule_page.create_rule(rule_name, trigger_type, action_type, conditions)
+        # Prepare original input dict for validation
+        original_input = {
+            "name": rule_name,
+            "trigger": trigger_type,
+            "action": action_type,
+            "conditions": conditions
+        }
+        # Validate rule retrieval
+        self.rule_page.validate_rule_retrieval(rule_name, original_input)
+
+    # TC-FT-010: Define a rule with after_deposit trigger, fixed_amount action, empty conditions; trigger and validate unconditional execution
+    def test_define_and_trigger_after_deposit_rule_unconditional(self):
+        rule_name = "TC-FT-010-AfterDepositRule"
+        trigger_type = "after_deposit"
+        action_type = "fixed_amount"
+        conditions = []
+        # Create rule
+        self.rule_page.create_rule(rule_name, trigger_type, action_type, conditions)
+        # Trigger rule and validate unconditional execution
+        result = self.rule_page.trigger_rule_unconditional(rule_name)
+        assert result, "Rule did not execute unconditionally"
