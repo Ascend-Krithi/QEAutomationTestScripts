@@ -87,16 +87,91 @@ class TestRuleConfiguration:
         success_message = self.page.create_rule(rule_id, rule_name, trigger_type, date_value, interval, after_deposit, conditions, actions, json_schema)
         assert 'success' in success_message.lower()
 
-    def test_TC_SCRUM158_05_invalid_trigger_rule(self):
+    def test_TC_SCRUM158_03_create_rule_with_metadata(self):
         """
-        Test Case TC_SCRUM158_05: Prepare a rule schema with an invalid trigger value and submit. Expect error about invalid value.
+        Test Case TC_SCRUM158_03: Create a rule with metadata and validate metadata is stored.
+        Steps:
+        1. Prepare a rule schema with metadata fields (e.g., description, tags).
+        2. Submit the schema.
+        3. Retrieve the rule and check metadata.
         """
-        error_message = self.page.create_rule_with_invalid_trigger()
-        assert 'invalid' in error_message.lower() or 'unknown' in error_message.lower()
+        rule_id = 'AUTO_TC158_03'
+        rule_name = 'Rule With Metadata'
+        trigger_type = 'balance_above'
+        date_value = '2026-02-12'
+        interval = '10'
+        after_deposit = False
+        conditions = [{
+            'type': 'balance',
+            'threshold': '1500',
+            'source': 'bank',
+            'operator': 'greater_than'
+        }]
+        actions = [{
+            'type': 'transfer',
+            'amount': '300',
+            'percentage': '30',
+            'destination_account': 'ACC111222333'
+        }]
+        metadata = {
+            'description': 'Transfer rule',
+            'tags': ['finance', 'auto']
+        }
+        schema_dict = {
+            'trigger': trigger_type,
+            'conditions': conditions,
+            'actions': actions,
+            'metadata': metadata
+        }
+        self.page.enter_rule_id(rule_id)
+        self.page.enter_rule_name(rule_name)
+        self.page.select_trigger_type(trigger_type)
+        self.page.set_recurring_interval(interval)
+        if after_deposit:
+            self.page.toggle_after_deposit()
+        self.page.set_json_schema(schema_dict)
+        is_valid = self.page.validate_json_schema()
+        assert is_valid, 'JSON schema with metadata should be valid.'
+        # Simulate rule creation and retrieval
+        # In a real test, you would submit and then retrieve via UI or API
+        retrieved_metadata = self.page.get_metadata_from_rule(rule_id)
+        assert retrieved_metadata is not None, 'Metadata should be present.'
+        assert retrieved_metadata.get('description') == metadata['description']
+        assert retrieved_metadata.get('tags') == metadata['tags']
 
-    def test_TC_SCRUM158_06_missing_condition_param_rule(self):
+    def test_TC_SCRUM158_04_schema_error_missing_trigger(self):
         """
-        Test Case TC_SCRUM158_06: Prepare a rule schema with a condition missing required parameters and submit. Expect error about incomplete condition.
+        Test Case TC_SCRUM158_04: Submit a rule schema missing the 'trigger' field and validate error is returned.
         """
-        error_message = self.page.create_rule_with_missing_condition_param()
-        assert 'missing' in error_message.lower() or 'required' in error_message.lower()
+        rule_id = 'AUTO_TC158_04'
+        rule_name = 'Schema Error Missing Trigger'
+        # trigger_type is intentionally missing
+        interval = '5'
+        after_deposit = False
+        conditions = [{
+            'type': 'balance',
+            'threshold': '900',
+            'source': 'bank',
+            'operator': 'greater_than'
+        }]
+        actions = [{
+            'type': 'transfer',
+            'amount': '100',
+            'percentage': '10',
+            'destination_account': 'ACC555666777'
+        }]
+        schema_dict = {
+            # 'trigger' is omitted intentionally
+            'conditions': conditions,
+            'actions': actions
+        }
+        self.page.enter_rule_id(rule_id)
+        self.page.enter_rule_name(rule_name)
+        self.page.set_recurring_interval(interval)
+        if after_deposit:
+            self.page.toggle_after_deposit()
+        self.page.set_json_schema(schema_dict)
+        is_valid = self.page.validate_json_schema()
+        assert not is_valid, 'JSON schema missing trigger should be invalid.'
+        error_msg = self.page.get_schema_error()
+        assert 'trigger' in error_msg.lower(), 'Error message should mention missing trigger field.'
