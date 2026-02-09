@@ -19,7 +19,7 @@ class RuleConfigurationPage:
     # Existing methods preserved below...
     # ... (existing methods, unchanged) ...
 
-    # --- Appended methods for TC-FT-009 ---
+    # --- Appended methods for TC_SCRUM158_09 ---
     def create_rule_specific_date_fixed_amount(self, date_iso, amount):
         """
         Create and store a rule with a specific_date trigger and fixed_amount action.
@@ -61,7 +61,7 @@ class RuleConfigurationPage:
                 return True
         return False
 
-    # --- Appended methods for TC-FT-010 ---
+    # --- Appended methods for TC_SCRUM158_10 ---
     def create_rule_after_deposit_fixed_amount_unconditional(self, amount):
         """
         Create a rule with after_deposit trigger, fixed_amount action, and empty conditions (unconditional).
