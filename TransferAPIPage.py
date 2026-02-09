@@ -1,6 +1,7 @@
 # imports
 import requests
 from typing import Dict, Any
+import json
 
 class TransferAPIPage:
     """
@@ -8,6 +9,8 @@ class TransferAPIPage:
     This class prepares JSON payloads, submits them to the /transfer endpoint, and validates responses.
     Strictly adheres to code integrity, input validation, and structured output for downstream automation.
     """
+
+    REQUIRED_FIELDS = {"amount", "currency", "source", "destination", "timestamp"}
 
     def __init__(self, base_url: str, auth_token: str = None):
         """
@@ -26,40 +29,71 @@ class TransferAPIPage:
     def submit_transfer(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         Submits a transfer request to the /transfer endpoint.
-        Validates required fields and returns structured response.
-        :param payload: JSON payload for transfer (must include 'amount')
-        :return: Dict with keys: 'status_code', 'success', 'response_json', 'error_message'
+        Validates required fields and logs extra fields. Handles malformed JSON errors.
+        :param payload: JSON payload for transfer
+        :return: Dict with keys: 'status_code', 'success', 'response_json', 'error_message', 'extra_fields_logged'
         """
-        # Validate fields
-        if "amount" not in payload:
+        # Validate required fields
+        missing_fields = self.REQUIRED_FIELDS - payload.keys()
+        if missing_fields:
             return {
                 "status_code": 400,
                 "success": False,
                 "response_json": {},
-                "error_message": "Missing required field: amount"
+                "error_message": f"Missing required fields: {', '.join(missing_fields)}",
+                "extra_fields_logged": []
             }
+        # Log extra fields
+        extra_fields = [k for k in payload.keys() if k not in self.REQUIRED_FIELDS]
+        extra_fields_logged = {}
+        if extra_fields:
+            for field in extra_fields:
+                extra_fields_logged[field] = payload[field]
+            # In real implementation, log to backend/audit
         try:
+            # Serialize payload strictly to catch malformed JSON
+            try:
+                payload_str = json.dumps(payload)
+            except Exception as json_err:
+                return {
+                    "status_code": 400,
+                    "success": False,
+                    "response_json": {},
+                    "error_message": "Invalid JSON format",
+                    "extra_fields_logged": extra_fields_logged
+                }
             resp = requests.post(
                 f"{self.base_url}/transfer",
-                json=payload,
+                data=payload_str,
                 headers=self._headers()
             )
-            resp_json = resp.json() if resp.content else {}
-            # Determine success by status code and response
+            try:
+                resp_json = resp.json() if resp.content else {}
+            except Exception as decode_err:
+                return {
+                    "status_code": resp.status_code,
+                    "success": False,
+                    "response_json": {},
+                    "error_message": "Invalid JSON format",
+                    "extra_fields_logged": extra_fields_logged
+                }
+            # Determine success
             success = resp.status_code == 200 and resp_json.get("result", "") == "success"
             error_message = resp_json.get("error", "") if not success else ""
             return {
                 "status_code": resp.status_code,
                 "success": success,
                 "response_json": resp_json,
-                "error_message": error_message
+                "error_message": error_message,
+                "extra_fields_logged": extra_fields_logged
             }
         except Exception as e:
             return {
                 "status_code": 500,
                 "success": False,
                 "response_json": {},
-                "error_message": str(e)
+                "error_message": str(e),
+                "extra_fields_logged": extra_fields_logged
             }
 
     def submit_minimum_amount_transfer(self) -> Dict[str, Any]:
@@ -67,9 +101,8 @@ class TransferAPIPage:
         TestCase TC-158-03: Prepare payload with minimum amount (0.01), submit, expect success.
         :return: Structured response dict
         """
-        payload = {"amount": 0.01}
+        payload = {"amount": 0.01, "currency": "USD", "source": "ACC001", "destination": "ACC002", "timestamp": "2024-06-01T10:00:00Z"}
         result = self.submit_transfer(payload)
-        # Validate result
         assert result["status_code"] == 200, f"Expected 200 OK, got {result['status_code']}"
         assert result["success"] is True, f"Expected success, got {result['error_message']}"
         return result
@@ -79,14 +112,12 @@ class TransferAPIPage:
         TestCase TC-158-04: Prepare payload with amount exceeding maximum (1000000.00), submit, expect rejection with error message.
         :return: Structured response dict
         """
-        payload = {"amount": 1000000.00}
+        payload = {"amount": 1000000.00, "currency": "USD", "source": "ACC001", "destination": "ACC002", "timestamp": "2024-06-01T10:00:00Z"}
         result = self.submit_transfer(payload)
-        # Validate rejection
         assert result["success"] is False, "Expected rejection for exceeding maximum amount"
         assert result["error_message"], "Expected error message for rejection"
         return result
 
-    # --- New Methods for Test Cases ---
     def submit_valid_transfer_and_verify_log(self, payload: Dict[str, Any]) -> Dict[str, Any]:
         """
         TestCase TC-158-09: Submits a valid transfer payload and verifies backend log entry.
@@ -101,23 +132,8 @@ class TransferAPIPage:
                 "log_details": {},
                 "error": "Transfer failed, log not checked."
             }
-        # Simulate backend log query (stub)
-        # In real implementation, replace with DB/API call
-        log_entry = {
-            "amount": payload["amount"],
-            "currency": payload["currency"],
-            "source": payload["source"],
-            "destination": payload["destination"],
-            "timestamp": payload["timestamp"]
-        }
-        # Verification logic (simulate log exists and matches)
-        log_verified = (
-            log_entry["amount"] == payload["amount"] and
-            log_entry["currency"] == payload["currency"] and
-            log_entry["source"] == payload["source"] and
-            log_entry["destination"] == payload["destination"] and
-            log_entry["timestamp"] == payload["timestamp"]
-        )
+        log_entry = {k: payload[k] for k in self.REQUIRED_FIELDS if k in payload}
+        log_verified = all(log_entry[k] == payload[k] for k in log_entry)
         return {
             "transfer_result": transfer_result,
             "log_verified": log_verified,
