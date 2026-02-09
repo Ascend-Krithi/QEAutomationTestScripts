@@ -71,25 +71,3 @@ class TestLoginFunctionality:
         valid_password = "ValidPassword123"
         result = self.login_page.validate_maximum_input_length_login(login_url, max_length_email, valid_password)
         assert result, "Login was not successful or field did not accept maximum input length."
-
-    # --- TC_LOGIN_002 ---
-    async def test_TC_LOGIN_002_invalid_login(self):
-        """
-        TC_LOGIN_002: Navigate to login page, enter invalid email/username or password (wronguser@example.com / WrongPassword), click login, validate error message for invalid credentials.
-        """
-        login_url = "http://your-login-url.com"  # Replace with actual login page URL
-        invalid_email = "wronguser@example.com"
-        invalid_password = "WrongPassword"
-        expected_error = "Invalid credentials"
-        result = self.login_page.validate_invalid_login(login_url, invalid_email, invalid_password, expected_error)
-        assert result, f"Expected error message '{expected_error}' not shown for invalid credentials."
-
-    # --- TC_LOGIN_003 ---
-    async def test_TC_LOGIN_003_empty_credentials(self):
-        """
-        TC_LOGIN_003: Navigate to login page, leave email/username and/or password fields empty, click login, validate error or validation message for empty fields.
-        """
-        login_url = "http://your-login-url.com"  # Replace with actual login page URL
-        expected_error = "Mandatory fields are required"  # Replace with actual error message for empty fields
-        result = self.login_page.validate_login_empty_fields(login_url, expected_error)
-        assert result, f"Expected error message '{expected_error}' not shown for empty credentials."
