@@ -5,40 +5,58 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 class LoginPage:
-    """
-    Page Object for the Login Page.
-    Handles actions and validations for login functionality.
-    """
-    # Locators (Assumed, update with actual values from Locators.json when available)
-    USERNAME_INPUT = (By.ID, 'username')
-    PASSWORD_INPUT = (By.ID, 'password')
-    LOGIN_BUTTON = (By.ID, 'loginBtn')
-    ERROR_MESSAGE = (By.ID, 'loginError')
-
     def __init__(self, driver: WebDriver):
         self.driver = driver
         self.wait = WebDriverWait(self.driver, 10)
+        # Locators loaded from Locators.json
+        self.username_locator = (By.ID, "username_input")
+        self.password_locator = (By.ID, "password_input")
+        self.login_button_locator = (By.ID, "login_btn")
+        self.remember_me_locator = (By.ID, "remember_me_checkbox")
+        self.error_message_locator = (By.ID, "error_message")
 
     def enter_username(self, username: str):
-        username_field = self.wait.until(EC.visibility_of_element_located(self.USERNAME_INPUT))
+        username_field = self.wait.until(EC.visibility_of_element_located(self.username_locator))
         username_field.clear()
         username_field.send_keys(username)
 
-    def leave_email_empty(self):
-        self.enter_username("")
-
     def enter_password(self, password: str):
-        password_field = self.wait.until(EC.visibility_of_element_located(self.PASSWORD_INPUT))
+        password_field = self.wait.until(EC.visibility_of_element_located(self.password_locator))
         password_field.clear()
         password_field.send_keys(password)
 
-    def leave_password_empty(self):
-        self.enter_password("")
-
     def click_login(self):
-        login_btn = self.wait.until(EC.element_to_be_clickable(self.LOGIN_BUTTON))
+        login_btn = self.wait.until(EC.element_to_be_clickable(self.login_button_locator))
         login_btn.click()
 
-    def get_error_message(self) -> str:
-        error_elem = self.wait.until(EC.visibility_of_element_located(self.ERROR_MESSAGE))
-        return error_elem.text
+    def click_remember_me(self):
+        remember_me_checkbox = self.wait.until(EC.element_to_be_clickable(self.remember_me_locator))
+        if not remember_me_checkbox.is_selected():
+            remember_me_checkbox.click()
+
+    def is_remember_me_selected(self):
+        remember_me_checkbox = self.wait.until(EC.visibility_of_element_located(self.remember_me_locator))
+        return remember_me_checkbox.is_selected()
+
+    def get_error_message(self):
+        try:
+            error_element = self.wait.until(EC.visibility_of_element_located(self.error_message_locator))
+            return error_element.text
+        except:
+            return None
+
+    def login(self, username: str, password: str, remember_me: bool = False):
+        self.enter_username(username)
+        self.enter_password(password)
+        if remember_me:
+            self.click_remember_me()
+        self.click_login()
+
+    def validate_session_persistence(self):
+        # Assumes session persistence is checked by accessing the login page after login
+        self.driver.get(self.driver.current_url)
+        # If 'Remember Me' was checked, user should remain logged in (DashboardPage should be visible)
+        # This method can be expanded based on application logic
+        from Pages.DashboardPage import DashboardPage
+        dashboard = DashboardPage(self.driver)
+        return dashboard.is_dashboard_displayed()
