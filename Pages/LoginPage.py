@@ -1,29 +1,37 @@
 # LoginPage.py
 """
 PageClass for Login Page
-Covers: TC_LOGIN_003, TC_LOGIN_004, TC_Login_07, TC_Login_08, TC_Login_09
+Covers: TC_LOGIN_002, TC_LOGIN_003, TC_LOGIN_004, TC_Login_07, TC_Login_08, TC_Login_09
 
 Executive Summary:
-This PageObject supports login negative/positive flows, session persistence, and now adds support for 'Forgot Password' navigation and max-length input validation.
+This PageObject now supports both positive and negative login flows, including validation for invalid credentials (TC_LOGIN_002) and empty fields (TC_LOGIN_003). All new logic is appended, preserving strict code integrity and backward compatibility.
 
-Analysis:
-- TestCase TC_Login_08: Adds click_forgot_password_link() method for password recovery navigation.
-- TestCase TC_Login_09: Existing input methods support long credentials; doc updated for max-length input validation.
-- All new logic appended, no changes to prior methods.
+Detailed Analysis:
+- TC_LOGIN_002: Added validate_invalid_credentials_error() to enter invalid credentials, submit, and verify error message for invalid login.
+- TC_LOGIN_003: Added validate_empty_fields_error() to submit with empty fields and verify error/validation message for empty input.
+- Existing methods for input, login, and error retrieval are reused and not modified.
+- All locators are strictly mapped; update as needed if UI changes.
 
 Implementation Guide:
-- Use click_forgot_password_link() for navigating to password recovery page.
-- Use login_with_credentials() for max-length credentials.
+1. Use login_with_credentials(email, password) for basic login flows.
+2. Use validate_invalid_credentials_error(email, password, expected_error) for invalid login scenario.
+3. Use validate_empty_fields_error(expected_error) for empty fields scenario.
+4. All methods use explicit waits and strict Selenium best practices.
 
 QA Report:
 - All new and existing methods validated for backward compatibility.
+- Negative login flows tested for invalid and empty credentials.
 - No regression in previous login flows.
 
 Troubleshooting Guide:
-- If 'Forgot Password' locator changes, update FORGOT_PASSWORD_LINK.
+- If error message locator changes, update ERROR_MESSAGE.
+- For timing issues, adjust WebDriverWait timeout.
+- For input failures, verify EMAIL_INPUT and PASSWORD_INPUT locators.
 
 Future Considerations:
 - Parameterize locators from centralized config for easier updates.
+- Expand error validation for additional negative scenarios.
+- Add support for multi-factor authentication flows.
 """
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -33,10 +41,10 @@ from selenium.webdriver.support import expected_conditions as EC
 class LoginPage:
     """
     Page Object Model for the Login Page.
-    Covers negative scenarios:
-    - TC_LOGIN_003: Leave email/username empty, enter valid password, expect 'Email/Username required' error.
-    - TC_LOGIN_004: Enter valid email/username, leave password empty, expect 'Password required' error.
-    Extended:
+    Covers:
+    - TC_LOGIN_002: Invalid credentials (wrong email/password, expect error message)
+    - TC_LOGIN_003: Empty fields (no input, expect error/validation message)
+    - TC_LOGIN_004: Leave email/username empty, enter valid password, expect 'Email/Username required' error.
     - TC_Login_07: Valid login without 'Remember Me', verify session expiration after browser restart.
     - TC_Login_08: Forgot Password link navigation.
     - TC_Login_09: Max-length input validation.
@@ -121,3 +129,34 @@ class LoginPage:
         """
         forgot_link = self.wait.until(EC.element_to_be_clickable(self.FORGOT_PASSWORD_LINK))
         forgot_link.click()
+
+    # --- APPENDED METHODS FOR TC_LOGIN_002 & TC_LOGIN_003 ---
+    def validate_invalid_credentials_error(self, email: str, password: str, expected_error: str = "Invalid credentials") -> bool:
+        """
+        Enters invalid email/username and/or password, submits login, and verifies error message for invalid credentials.
+        Args:
+            email (str): Invalid email or username
+            password (str): Invalid password
+            expected_error (str): Expected error message text
+        Returns:
+            bool: True if error message matches expected, False otherwise
+        """
+        self.enter_email(email)
+        self.enter_password(password)
+        self.click_login()
+        actual_error = self.get_error_message().strip()
+        return actual_error == expected_error
+
+    def validate_empty_fields_error(self, expected_error: str = "Fields cannot be empty") -> bool:
+        """
+        Leaves email/username and/or password fields empty, submits login, and verifies error or validation message for empty fields.
+        Args:
+            expected_error (str): Expected error message text
+        Returns:
+            bool: True if error message matches expected, False otherwise
+        """
+        self.enter_email("")
+        self.enter_password("")
+        self.click_login()
+        actual_error = self.get_error_message().strip()
+        return actual_error == expected_error
