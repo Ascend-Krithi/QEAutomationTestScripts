@@ -69,8 +69,48 @@ class TestRuleConfiguration(unittest.TestCase):
             transfer_count = self.rule_page.verify_transfer(rule_details, date=simulated_date)
             self.assertEqual(transfer_count, 1, f"Transfer not executed for week {week+1} ({simulated_date})")
 
-# Note:
-# - The methods create_rule, validate_rule, simulate_time, verify_transfer, add_weeks_to_date
-#   are assumed to be implemented in RuleConfigurationPage.py as per the context.
-# - Existing logic in TestLoginFunctionality is preserved.
-# - Comments provided for clarity and traceability.
+    # --- Appended for TC-FT-003 ---
+    def test_rule_with_multiple_conditions(self):
+        """
+        TC-FT-003:
+        - Define a rule with multiple conditions (balance >= 1000, source = 'salary').
+        - Simulate deposit from 'salary' when balance is 900 (expect no transfer).
+        - Simulate deposit from 'salary' when balance is 1200 (expect transfer).
+        """
+        rule_id = "TC003"
+        rule_name = "Multiple Conditions Rule"
+        # Step 1: Define rule with multiple conditions
+        self.rule_page.define_multi_condition_rule(rule_id, rule_name, 1000, 'salary')
+        # Step 2: Validate rule acceptance
+        self.assertTrue(self.rule_page.is_rule_accepted(), "Rule was not accepted.")
+        # Step 3: Simulate deposit with balance 900 (should NOT execute transfer)
+        result = self.rule_page.simulate_deposit_and_validate_transfer(900, expect_transfer=False)
+        self.assertTrue(result, "Transfer should NOT be executed when balance is 900.")
+        # Step 4: Simulate deposit with balance 1200 (should execute transfer)
+        result = self.rule_page.simulate_deposit_and_validate_transfer(1200, expect_transfer=True)
+        self.assertTrue(result, "Transfer should be executed when balance is 1200.")
+
+    # --- Appended for TC-FT-004 ---
+    def test_rule_with_missing_trigger_type_returns_error(self):
+        """
+        TC-FT-004:
+        - Submit a rule with missing trigger type.
+        - Expect error indicating missing required field.
+        """
+        rule_id = "TC004A"
+        rule_name = "Missing Trigger Rule"
+        error_message = self.rule_page.submit_rule_missing_trigger(rule_id, rule_name)
+        self.assertIsNotNone(error_message, "Error message expected for missing trigger type.")
+        self.assertIn("missing", error_message.lower(), "Error message should indicate missing required field.")
+
+    def test_rule_with_unsupported_action_type_returns_error(self):
+        """
+        TC-FT-004:
+        - Submit a rule with unsupported action type.
+        - Expect error indicating unsupported action type.
+        """
+        rule_id = "TC004B"
+        rule_name = "Unsupported Action Rule"
+        error_message = self.rule_page.submit_rule_unsupported_action(rule_id, rule_name)
+        self.assertIsNotNone(error_message, "Error message expected for unsupported action type.")
+        self.assertIn("unsupported", error_message.lower(), "Error message should indicate unsupported action type.")
