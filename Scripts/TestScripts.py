@@ -75,3 +75,30 @@ class TestRuleConfiguration:
         self.rule_page.prepare_and_submit_multi_condition_action_rule_and_verify(rule_id, rule_name, conditions, actions)
         success_msg = self.rule_page.get_success_message()
         assert "success" in success_msg.lower(), f"Rule creation failed: {success_msg}"
+
+    def test_TC_SCRUM158_03(self):
+        rule_id = "TC_SCRUM158_03"
+        rule_name = "Recurring Weekly Amount Rule"
+        interval = "weekly"
+        condition_operator = ">="
+        condition_value = 1000
+        action_account = "C"
+        action_amount = 1000
+        self.rule_page.create_recurring_rule(rule_id, rule_name, interval, condition_operator, condition_value, action_account, action_amount)
+        self.rule_page.validate_json_schema()
+        success_msg = self.rule_page.get_success_message()
+        assert "accepted" in success_msg.lower() or "scheduled" in success_msg.lower(), f"Rule not scheduled: {success_msg}"
+        time.sleep(2)
+
+    def test_TC_SCRUM158_04(self):
+        rule_id = "TC_SCRUM158_04"
+        rule_name = "Missing Trigger Rule"
+        condition_operator = "<"
+        condition_value = 50
+        action_account = "D"
+        action_amount = 50
+        self.rule_page.create_rule_missing_trigger(rule_id, rule_name, condition_operator, condition_value, action_account, action_amount)
+        self.rule_page.validate_json_schema()
+        error_msg = self.rule_page.get_schema_error_message()
+        assert "missing" in error_msg.lower() or "required" in error_msg.lower(), f"Schema error not detected: {error_msg}"
+        time.sleep(2)
