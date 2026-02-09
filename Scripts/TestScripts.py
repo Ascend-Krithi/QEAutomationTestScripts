@@ -93,3 +93,24 @@ class TestRuleConfiguration(unittest.TestCase):
         }
         result = self.page.validate_missing_trigger_error(rule_schema)
         self.assertTrue(result, "Schema was not rejected with error indicating missing required 'trigger' field.")
+
+    def test_TC_SCRUM158_07_create_rule_with_required_fields(self):
+        """TC_SCRUM158_07: Prepare a schema with only required fields (one trigger, one condition, one action). Submit the schema and verify rule creation."""
+        rule_id = "scrum15807_rule"
+        rule_name = "SCRUM15807_RequiredFieldsRule"
+        condition_type = "amount"
+        operator = "=="
+        value = 1
+        action_type = "transfer"
+        account = "G"
+        amount = 1
+        result = self.page.create_rule_with_required_fields(rule_id, rule_name, condition_type, operator, value, action_type, account, amount)
+        self.assertTrue(result, "Rule was not accepted and created as expected.")
+
+    def test_TC_SCRUM158_08_submit_schema_with_large_metadata(self):
+        """TC_SCRUM158_08: Prepare a schema with a large metadata field (e.g., 10,000 characters). Submit and verify acceptance/performance."""
+        rule_id = "scrum15808_rule"
+        rule_name = "SCRUM15808_LargeMetadataRule"
+        metadata = "A" * 10000  # Large metadata string
+        result = self.page.submit_schema_with_large_metadata(rule_id, rule_name, metadata)
+        self.assertTrue(result, "Rule was not accepted or performance was not acceptable.")
