@@ -163,3 +163,68 @@ class RuleConfigurationPage:
         self.set_recurring_trigger(interval)
         self.set_percentage_action(percentage, dest_account)
         self.save_rule()
+
+    # --- Appended for TC-FT-003 ---
+    def define_rule_with_multiple_conditions(self, rule_id, rule_name, trigger_type, trigger_value, conditions, action_type, action_value, dest_account):
+        """
+        conditions: list of dicts, each dict with keys: condition_type, balance_threshold, transaction_source, operator
+        action_type: 'fixed_amount' or 'percentage_of_deposit'
+        """
+        self.enter_rule_id(rule_id)
+        self.enter_rule_name(rule_name)
+        if trigger_type == 'specific_date':
+            self.set_specific_date_trigger(trigger_value)
+        elif trigger_type == 'recurring':
+            self.set_recurring_trigger(trigger_value)
+        elif trigger_type == 'after_deposit':
+            self.toggle_after_deposit(True)
+        else:
+            self.select_trigger_type(trigger_type)
+        for cond in conditions:
+            self.add_condition(
+                condition_type=cond.get('condition_type'),
+                balance_threshold=cond.get('balance_threshold'),
+                transaction_source=cond.get('transaction_source'),
+                operator=cond.get('operator')
+            )
+        if action_type == 'fixed_amount':
+            self.set_fixed_amount_action(action_value, dest_account)
+        elif action_type == 'percentage_of_deposit':
+            self.set_percentage_action(action_value, dest_account)
+        else:
+            self.select_action_type(action_type)
+        self.save_rule()
+
+    def simulate_deposit_and_validate_transfer(self, deposit_amount, expected_transfer_amount):
+        """
+        Simulate deposit and validate transfer execution.
+        This method assumes the presence of deposit simulation UI and transfer validation UI.
+        """
+        # Example simulation: (pseudo-locators, adjust as per actual UI)
+        deposit_input = self.wait.until(EC.visibility_of_element_located((By.ID, 'simulate-deposit-amount')))
+        deposit_input.clear()
+        deposit_input.send_keys(str(deposit_amount))
+        simulate_btn = self.wait.until(EC.element_to_be_clickable((By.ID, 'simulate-deposit-btn')))
+        simulate_btn.click()
+        # Validate transfer
+        transfer_result = self.wait.until(EC.visibility_of_element_located((By.ID, 'transfer-result-amount')))
+        actual_transfer = float(transfer_result.text)
+        return actual_transfer == expected_transfer_amount
+
+    # --- Appended for TC-FT-004 ---
+    def validate_missing_trigger_error(self):
+        """
+        Attempts to save rule without selecting trigger, expects error message.
+        """
+        self.save_rule()
+        error_elem = self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, '[data-testid="trigger-error-feedback"]')))
+        return error_elem.text
+
+    def validate_unsupported_action_type_error(self, unsupported_action_type):
+        """
+        Attempts to select unsupported action type and expects error feedback.
+        """
+        self.select_action_type(unsupported_action_type)
+        self.save_rule()
+        error_elem = self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, '[data-testid="action-error-feedback"]')))
+        return error_elem.text
