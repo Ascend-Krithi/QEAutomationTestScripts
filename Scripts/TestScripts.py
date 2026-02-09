@@ -6,20 +6,42 @@ from selenium.webdriver.support import expected_conditions as EC
 import pytest
 
 from Pages.RuleConfigurationPage import RuleConfigurationPage
+from Pages.LoginPage import LoginPage
 
 class TestLoginFunctionality:
-    def __init__(self, page):
-        self.page = page
-        self.login_page = LoginPage(page)
+    def setup_method(self):
+        self.driver = webdriver.Chrome()
+        self.login_page = LoginPage(self.driver)
 
-    async def test_empty_fields_validation(self):
-        await self.login_page.navigate()
-        await self.login_page.submit_login('', '')
-        assert await self.login_page.get_error_message() == 'Mandatory fields are required'
+    def teardown_method(self):
+        self.driver.quit()
 
-    async def test_remember_me_functionality(self):
-        await self.login_page.navigate()
-        await self.login_page.fill_email('')
+    def test_empty_fields_validation(self):
+        self.login_page.navigate_to_login()
+        self.login_page.enter_email("")
+        self.login_page.enter_password("")
+        self.login_page.click_login()
+        assert self.login_page.get_error_message() == "Mandatory fields are required"
+
+    def test_remember_me_functionality(self):
+        self.login_page.navigate_to_login()
+        self.login_page.enter_email("")
+
+    def test_TC_Login_03_empty_email(self):
+        """
+        TC_Login_03: Leave email empty, enter valid password, click login, verify error 'Email required'.
+        """
+        self.login_page.navigate_to_login()
+        error_message = self.login_page.login_with_empty_email("ValidPassword123")
+        assert error_message == "Email required", f"Expected 'Email required', got '{error_message}'"
+
+    def test_TC_Login_04_empty_password(self):
+        """
+        TC_Login_04: Enter valid email, leave password empty, click login, verify error 'Password required'.
+        """
+        self.login_page.navigate_to_login()
+        error_message = self.login_page.login_with_empty_password("user@example.com")
+        assert error_message == "Password required", f"Expected 'Password required', got '{error_message}'"
 
 class TestRuleConfiguration:
     def setup_method(self):
