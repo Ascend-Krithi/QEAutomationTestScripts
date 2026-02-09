@@ -111,3 +111,36 @@ class TestRuleConfiguration(unittest.TestCase):
         # Step 2: Verify existing rules still work
         existing_rules_ok = self.rule_page.verify_existing_rules_functionality()
         self.assertTrue(existing_rules_ok, "Existing rules should continue to execute as before.")
+
+    # --- Appended for TC-FT-007 ---
+    def test_bulk_rule_loading_and_evaluation(self):
+        """
+        TC-FT-007:
+        1. Load 10,000 valid rules into the system from batch JSON.
+        2. Trigger evaluation for all rules simultaneously.
+        3. Assert load and evaluation times are within threshold and success is True.
+        """
+        rules_batch_json_path = "TestData/BatchRules_10000.json"
+        evaluation_button_locator = ("By.ID", "evaluate-rules-btn")
+        performance_threshold_seconds = 60
+        result = self.rule_page.load_and_evaluate_bulk_rules(
+            rules_batch_json_path, evaluation_button_locator, performance_threshold_seconds)
+        self.assertIsNotNone(result["load_time"], "Load time should not be None.")
+        self.assertIsNotNone(result["evaluation_time"], "Evaluation time should not be None.")
+        self.assertLessEqual(result["load_time"], performance_threshold_seconds, "Load time exceeded threshold.")
+        self.assertLessEqual(result["evaluation_time"], performance_threshold_seconds, "Evaluation time exceeded threshold.")
+        self.assertTrue(result["success"], "Bulk rule evaluation did not succeed.")
+
+    # --- Appended for TC-FT-008 ---
+    def test_sql_injection_rule_rejection(self):
+        """
+        TC-FT-008:
+        1. Submit a rule with SQL injection in balance_threshold condition.
+        2. Assert rule is rejected and error_message is not None.
+        """
+        rule_id = "TC008"
+        rule_name = "SQL Injection Rule"
+        sql_injection_value = "1000; DROP TABLE users;--"
+        result = self.rule_page.submit_rule_with_sql_injection(rule_id, rule_name, sql_injection_value)
+        self.assertFalse(result["accepted"], "Rule should not be accepted if SQL injection is present.")
+        self.assertIsNotNone(result["error_message"], "Error message expected for SQL injection attempt.")
