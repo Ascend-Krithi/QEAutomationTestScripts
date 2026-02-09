@@ -7,8 +7,6 @@ class RuleManagementPage:
         self.driver = driver
 
     def create_rule(self, conditions, actions):
-        # Example: conditions = {'balance': '>=1000', 'source': 'salary'}
-        # actions = {'transfer': 'execute'}
         self.driver.find_element(By.ID, "add-rule-btn").click()
         for cond_key, cond_value in conditions.items():
             self.driver.find_element(By.ID, f"condition-{cond_key}").send_keys(cond_value)
@@ -46,66 +44,52 @@ class RuleManagementPage:
         for expected_error in expected_errors:
             assert expected_error in errors, f"Expected error '{expected_error}' not found in {errors}"
 
-    # --- Appended Methods for TC-FT-003 ---
-    def add_multiple_conditions(self, conditions):
+    # --- Appended Methods for TC-FT-005 ---
+    def create_percentage_of_deposit_rule(self, percentage):
         """
-        Add multiple conditions to a rule.
-        conditions: dict, e.g. {'balance': '>=1000', 'source': 'salary', 'account_type': 'checking'}
-        """
-        for cond_key, cond_value in conditions.items():
-            field = self.driver.find_element(By.ID, f"condition-{cond_key}")
-            field.clear()
-            field.send_keys(cond_value)
-
-    def simulate_deposits(self, deposit_list):
-        """
-        Simulate multiple deposits.
-        deposit_list: list of dicts, e.g. [{'amount': 500, 'source': 'salary'}, {'amount': 2000, 'source': 'bonus'}]
-        """
-        for deposit in deposit_list:
-            self.simulate_deposit(deposit['amount'], deposit['source'])
-
-    def validate_transfer_not_executed(self):
-        """
-        Validate that transfer was NOT executed (negative case).
-        """
-        try:
-            WebDriverWait(self.driver, 5).until(
-                EC.presence_of_element_located((By.ID, "transfer-success-msg"))
-            )
-            actual = True
-        except:
-            actual = False
-        assert not actual, "Transfer was executed when it should NOT have been."
-
-    # --- Appended Methods for TC-FT-004 ---
-    def submit_rule_missing_trigger_type(self, actions):
-        """
-        Submit a rule with missing trigger type.
-        actions: dict, e.g. {'transfer': 'execute'}
+        Create a rule for percentage_of_deposit action.
+        percentage: int
         """
         self.driver.find_element(By.ID, "add-rule-btn").click()
-        # Do NOT fill trigger-type
-        for action_key, action_value in actions.items():
-            self.driver.find_element(By.ID, f"action-{action_key}").send_keys(action_value)
+        self.driver.find_element(By.ID, "trigger-type").send_keys("after_deposit")
+        self.driver.find_element(By.ID, "action-type").send_keys("percentage_of_deposit")
+        self.driver.find_element(By.ID, "action-percentage").send_keys(str(percentage))
         self.driver.find_element(By.ID, "submit-rule-btn").click()
 
-    def submit_rule_unsupported_action_type(self, trigger_type, unsupported_action):
+    def simulate_and_validate_percentage_transfer(self, deposit_amount, expected_transfer):
         """
-        Submit a rule with unsupported action type.
-        trigger_type: str
-        unsupported_action: dict, e.g. {'action_type': 'unsupported'}
+        Simulate deposit and validate percentage transfer.
+        deposit_amount: int
+        expected_transfer: int
+        """
+        self.simulate_deposit(deposit_amount, "test_source")
+        # Validate transfer amount
+        transfer_elem = self.driver.find_element(By.ID, "transfer-amount")
+        actual_transfer = int(transfer_elem.text)
+        assert actual_transfer == expected_transfer, f"Expected transfer {expected_transfer}, got {actual_transfer}"
+
+    # --- Appended Methods for TC-FT-006 ---
+    def create_currency_conversion_rule(self, currency, amount):
+        """
+        Create a rule with trigger type 'currency_conversion' and fixed amount.
         """
         self.driver.find_element(By.ID, "add-rule-btn").click()
-        self.driver.find_element(By.ID, "trigger-type").send_keys(trigger_type)
-        for action_key, action_value in unsupported_action.items():
-            self.driver.find_element(By.ID, f"action-{action_key}").send_keys(action_value)
+        self.driver.find_element(By.ID, "trigger-type").send_keys("currency_conversion")
+        self.driver.find_element(By.ID, "trigger-currency").send_keys(currency)
+        self.driver.find_element(By.ID, "action-type").send_keys("fixed_amount")
+        self.driver.find_element(By.ID, "action-amount").send_keys(str(amount))
         self.driver.find_element(By.ID, "submit-rule-btn").click()
 
-    def get_error_messages(self):
+    def validate_graceful_rejection(self):
         """
-        Returns all error messages shown on the page.
+        Validate system gracefully rejects unsupported rule type.
         """
-        error_elements = self.driver.find_elements(By.CLASS_NAME, "error-msg")
-        return [elem.text for elem in error_elements]
+        error_elem = self.driver.find_element(By.ID, "rule-error-msg")
+        assert "unsupported" in error_elem.text or "not recognized" in error_elem.text or "gracefully" in error_elem.text, f"Expected graceful rejection, got: {error_elem.text}"
 
+    def validate_existing_rules_execution(self):
+        """
+        Validate existing rules continue to execute as before.
+        """
+        # For demonstration, reuse validate_transfer_execution(True)
+        self.validate_transfer_execution(True)
