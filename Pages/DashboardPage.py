@@ -5,15 +5,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 class DashboardPage:
-    """
-    Page Object for Dashboard functionality.
-
-    Methods:
-        is_dashboard_displayed(): Return True if dashboard main element is visible.
-
-    Usage:
-        - Used for session validation post-login.
-    """
     def __init__(self, driver: WebDriver):
         self.driver = driver
         self.wait = WebDriverWait(self.driver, 10)
