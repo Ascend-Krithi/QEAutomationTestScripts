@@ -1,13 +1,14 @@
-
 import unittest
 from RuleEnginePage import RuleEnginePage
 from DepositPage import DepositPage
+from RulePage import RulePage
 
 class TestRuleEngine(unittest.TestCase):
 
     def setUp(self):
         self.rule_engine = RuleEnginePage()
         self.deposit_page = DepositPage()
+        self.rule_page = RulePage()
 
     # ... [existing methods remain unchanged] ...
 
@@ -49,3 +50,46 @@ class TestRuleEngine(unittest.TestCase):
         self.assertTrue(execution_result['executed'])
         self.assertEqual(execution_result['transfer_amount'], 100)
         self.assertEqual(execution_result['conditions_met'], True)
+
+    def test_TC_FT_007_batch_load_and_evaluate_rules(self):
+        """TC-FT-007: Batch load 10,000 valid rules and evaluate them using RuleEnginePage. Assert load and evaluation within performance thresholds."""
+        import time
+        # Generate 10,000 rules
+        rules = []
+        for i in range(10000):
+            rule = {
+                'trigger': {'type': 'after_deposit'},
+                'action': {'type': 'fixed_amount', 'amount': 10 + (i % 100)},
+                'conditions': []
+            }
+            rules.append(rule)
+        start_time = time.time()
+        self.rule_engine.batch_load_rules(rules)
+        eval_start = time.time()
+        evaluation_results = self.rule_engine.evaluate_all_rules()
+        eval_end = time.time()
+        total_time = eval_end - start_time
+        eval_time = eval_end - eval_start
+        # Assert all rules are processed
+        self.assertEqual(len(evaluation_results), 10000)
+        # Performance threshold: load + eval < 10 seconds, eval < 5 seconds
+        self.assertLess(total_time, 10, "Batch load & eval exceeded 10s")
+        self.assertLess(eval_time, 5, "Evaluation exceeded 5s")
+
+    def test_TC_FT_008_sql_injection_rule_rejection(self):
+        """TC-FT-008: Submit rule with SQL injection via RulePage and assert rejection and no SQL execution."""
+        # Rule with SQL injection in trigger value
+        rule_data = {
+            'trigger': {
+                'type': "after_deposit",
+                'value': "1000; DROP TABLE rules;"
+            },
+            'action': {
+                'type': 'fixed_amount',
+                'amount': 100
+            },
+            'conditions': []
+        }
+        self.rule_page.submit_rule_with_sql_injection(rule_data)
+        rejected = self.rule_page.is_rule_rejected()
+        self.assertTrue(rejected, "Rule with SQL injection should be rejected.")
