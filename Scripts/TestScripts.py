@@ -114,3 +114,15 @@ class TestRuleConfiguration(unittest.TestCase):
         metadata = "A" * 10000  # Large metadata string
         result = self.page.submit_schema_with_large_metadata(rule_id, rule_name, metadata)
         self.assertTrue(result, "Rule was not accepted or performance was not acceptable.")
+
+    def test_TC_SCRUM158_09_malicious_script_metadata(self):
+        """TC_SCRUM158_09: Prepare a schema with metadata containing a malicious script. Submit and verify error response."""
+        error_msg = self.page.test_malicious_script_metadata()
+        self.assertIsNotNone(error_msg, "Rule was not rejected for malicious script.")
+        self.assertTrue("invalid" in error_msg.lower() or "error" in error_msg.lower(), "Error does not indicate invalid content.")
+
+    def test_TC_SCRUM158_10_unsupported_trigger_type(self):
+        """TC_SCRUM158_10: Prepare a schema with unsupported trigger type. Submit and verify error or warning response."""
+        error_msg = self.page.test_unsupported_trigger_type()
+        self.assertIsNotNone(error_msg, "Rule was not rejected for unsupported trigger type.")
+        self.assertTrue("unsupported" in error_msg.lower() or "extensibility" in error_msg.lower() or "error" in error_msg.lower(), "Error does not indicate extensibility issue.")
