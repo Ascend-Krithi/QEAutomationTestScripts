@@ -42,5 +42,38 @@ class TestLoginPage(unittest.TestCase):
         result = self.login_page.login_with_max_length_credentials(max_length_email, valid_password)
         self.assertTrue(result, "Login with max length credentials should succeed if valid.")
 
+    def test_TC_LOGIN_002_invalid_credentials(self):
+        """
+        Test Case TC_LOGIN_002
+        Steps:
+        1. Navigate to the login page.
+        2. Enter invalid email/username or password (wronguser@example.com / WrongPassword).
+        3. Click the Login button.
+        Expected:
+        - User remains on login page.
+        - Error message for invalid credentials is displayed.
+        """
+        self.login_page.navigate_to_login()
+        self.login_page.login_with_credentials("wronguser@example.com", "WrongPassword")
+        error_message = self.login_page.get_error_message()
+        self.assertIsNotNone(error_message, "Error message should be displayed for invalid credentials.")
+        self.assertFalse(self.login_page.is_dashboard_redirected(), "User should remain on login page after invalid login.")
+
+    def test_TC_LOGIN_003_empty_fields(self):
+        """
+        Test Case TC_LOGIN_003
+        Steps:
+        1. Navigate to the login page.
+        2. Leave email/username and/or password fields empty.
+        3. Click the Login button.
+        Expected:
+        - User remains on login page.
+        - Error or validation message for empty fields is displayed.
+        """
+        self.login_page.navigate_to_login()
+        error_message = self.login_page.login_with_empty_fields()
+        self.assertIsNotNone(error_message, "Error or validation message should be displayed for empty fields.")
+        self.assertFalse(self.login_page.is_dashboard_redirected(), "User should remain on login page after empty fields login.")
+
 if __name__ == "__main__":
     unittest.main()
