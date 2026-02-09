@@ -61,3 +61,30 @@ class TestLogin:
         self.dashboard_page = DashboardPage(self.driver)
         self.driver.get("https://your-app-url.com/dashboard")
         assert self.dashboard_page.is_session_expired(), "Session should expire after browser restart without 'Remember Me'. User should be redirected to login page."
+
+    def test_forgot_password_redirect(self):
+        """
+        TC_Login_08: Test clicking 'Forgot Password' link and validating redirection to password recovery page.
+        Steps:
+        1. Navigate to login page
+        2. Click the 'Forgot Password' link
+        3. Validate user is redirected to password recovery page
+        """
+        url = "https://your-app-url.com/login"
+        self.login_page.navigate_to_login_page(url)
+        assert self.login_page.click_forgot_password_and_validate_redirect(), "User should be redirected to password recovery page after clicking 'Forgot Password'"
+
+    def test_email_max_length_login(self):
+        """
+        TC_Login_09: Test entering maximum allowed email/username length and valid password, then clicking login and validating that the field accepts max input.
+        Steps:
+        1. Navigate to login page
+        2. Enter 255-character email and valid password
+        3. Click Login
+        4. Validate field accepts max input and login succeeds
+        """
+        url = "https://your-app-url.com/login"
+        email = "a" * 255
+        password = "ValidPassword123"
+        self.login_page.navigate_to_login_page(url)
+        assert self.login_page.validate_email_max_length(255, email, password), "Email field should accept maximum input length of 255 characters"
