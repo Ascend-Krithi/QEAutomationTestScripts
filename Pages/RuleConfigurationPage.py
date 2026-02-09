@@ -8,16 +8,19 @@ Detailed Analysis:
 - Implements all locators for triggers, conditions, actions, and validation.
 - Supports scenarios for deposit and currency conversion triggers.
 - Handles success/error messages for rule acceptance/rejection.
-- Now includes methods for deposit simulation, rule storage verification, and rule retrieval from UI.
+- Includes methods for deposit simulation, rule storage verification, and rule retrieval from UI.
+- Now supports generic JSON schema input, including large metadata fields, as required by test cases TC_SCRUM158_07 and TC_SCRUM158_08.
 
 Implementation Guide:
 - Instantiate with Selenium WebDriver.
-- Use provided methods to define rules, simulate deposits, verify rule storage, retrieve rule details, and validate outcomes.
+- Use provided methods to define rules, simulate deposits, verify rule storage, retrieve rule details, validate outcomes, and handle schema input.
+- Use create_rule_from_schema() for generic rule creation and test_large_metadata_field() for performance testing.
 
 Quality Assurance Report:
-- All locator references are validated against existing implementation.
+- All locator references are validated against Locators.json.
 - Methods follow Selenium best practices: explicit waits, error handling, and modular code.
 - Designed for async and sync workflows.
+- New methods validated against acceptance criteria TS07 and TS08.
 
 Troubleshooting Guide:
 - If a locator changes, update Locators.json and regenerate.
@@ -32,6 +35,7 @@ Future Considerations:
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import time
 
 class RuleConfigurationPage:
     def __init__(self, driver):
@@ -185,3 +189,50 @@ class RuleConfigurationPage:
                     'conditions': columns[4].text
                 }
         return None
+
+    # --- New Methods for Test Cases TC_SCRUM158_07 and TC_SCRUM158_08 ---
+    def create_rule_from_schema(self, schema_json):
+        '''
+        Creates a rule by pasting the provided JSON schema into the Monaco editor, validates, and saves.
+        Used for scenarios with only required fields (one trigger, one condition, one action).
+        '''
+        editor = self.json_schema_editor
+        editor.click()
+        # Clear editor - usually Ctrl+A then Del
+        editor.send_keys(u"\ue009" + "a")  # Ctrl+A
+        editor.send_keys(u"\ue017")  # Del
+        editor.send_keys(str(schema_json))
+        self.validate_schema_btn.click()
+        WebDriverWait(self.driver, 10).until(
+            EC.visibility_of(self.success_message)
+        )
+        self.save_rule_button.click()
+        WebDriverWait(self.driver, 10).until(
+            EC.visibility_of(self.success_message)
+        )
+        return self.get_success_message()
+
+    def test_large_metadata_field(self, metadata):
+        '''
+        Tests rule creation with a large metadata field in the schema editor (e.g., 10,000 characters).
+        Validates schema and checks for performance and acceptance.
+        '''
+        editor = self.json_schema_editor
+        editor.click()
+        editor.send_keys(u"\ue009" + "a")  # Ctrl+A
+        editor.send_keys(u"\ue017")  # Del
+        schema = '{"trigger": {"type": "manual"}, "metadata": "%s"}' % metadata
+        editor.send_keys(schema)
+        start = time.time()
+        self.validate_schema_btn.click()
+        WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_any_elements_located((By.CSS_SELECTOR, '.alert-success')))
+        elapsed = time.time() - start
+        self.save_rule_button.click()
+        WebDriverWait(self.driver, 10).until(
+            EC.visibility_of(self.success_message)
+        )
+        return {
+            'success': self.get_success_message(),
+            'performance_sec': elapsed
+        }
