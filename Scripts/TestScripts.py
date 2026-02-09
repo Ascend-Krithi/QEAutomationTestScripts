@@ -13,23 +13,25 @@ class TestLoginFunctionality:
 
     async def test_remember_me_functionality(self):
         await self.login_page.navigate()
-        await self.login_page.fill_email('')
+        await self.login_page.fill_email('
 
     async def test_TC_Login_03_empty_email(self):
-        # TC_Login_03: Leave email empty, enter valid password, expect 'Email required' error
-        url = 'https://example.com/login'  # Replace with actual login page URL
-        valid_password = 'ValidPassword123'  # Replace with actual valid password
-        expected_error = 'Email required'
-        result = self.login_page.validate_empty_email_login(url, valid_password, expected_error)
-        assert result, f"Expected error '{expected_error}' not shown for empty email."
+        """
+        Test Case TC_Login_03: Leave the email field empty, enter a valid password, click login, and assert 'Email required' error message.
+        """
+        url = "<LOGIN_PAGE_URL>"  # Replace with actual login page URL
+        valid_password = "ValidPassword123"
+        result = self.login_page.validate_empty_email_login(url, valid_password)
+        assert result, "Expected error message 'Email required' and user not logged in."
 
     async def test_TC_Login_04_empty_password(self):
-        # TC_Login_04: Enter valid email, leave password empty, expect 'Password required' error
-        url = 'https://example.com/login'  # Replace with actual login page URL
-        valid_email = 'user@example.com'  # Replace with actual valid email
-        expected_error = 'Password required'
-        result = self.login_page.validate_empty_password_login(url, valid_email, expected_error)
-        assert result, f"Expected error '{expected_error}' not shown for empty password."
+        """
+        Test Case TC_Login_04: Enter a valid email, leave the password field empty, click login, and assert 'Password required' error message.
+        """
+        url = "<LOGIN_PAGE_URL>"  # Replace with actual login page URL
+        valid_email = "user@example.com"
+        result = self.login_page.validate_empty_password_login(url, valid_email)
+        assert result, "Expected error message 'Password required' and user not logged in."
 
 class TestRuleConfiguration:
     def __init__(self, page):
