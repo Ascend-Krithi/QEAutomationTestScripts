@@ -209,3 +209,11 @@ class TestRuleConfiguration:
             metadata=large_metadata
         )
         assert result['success'] == 'Rule created successfully' or 'performance' in result['success'].lower(), f"Expected rule creation or acceptable performance, got: {result['success']}"
+
+    # TC_SCRUM158_09: Prepare a schema with malicious script in metadata and verify rejection
+    async def test_TC_SCRUM158_09(self):
+        result = self.rule_config_page.create_rule_with_malicious_metadata(
+            rule_id='TC_SCRUM158_09',
+            rule_name='Malicious Metadata Rule'
+        )
+        assert result['error'] is not None and result['error'] != '', f"Expected error message for malicious metadata, got: {result['error']}"
