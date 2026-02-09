@@ -68,3 +68,43 @@ class TestLogin:
         self.login_page.enter_password(password)
         self.login_page.click_login()
         assert self.dashboard_page.is_logged_in(), "Login should succeed when credentials match exactly (case-sensitive)."
+
+    def test_TC_LOGIN_001_valid_login(self):
+        """
+        TC_LOGIN_001: Valid Login
+        Steps:
+        1. Navigate to the login page.
+        2. Enter valid email/username and valid password.
+        3. Click the 'Login' button.
+        Expected:
+        - Login page is displayed.
+        - Fields accept input.
+        - User is logged in and redirected to account dashboard.
+        """
+        # Navigate to login page is assumed in setup
+        assert self.login_page.is_displayed(), "Login page is not displayed."
+        self.login_page.enter_username("user@example.com")
+        self.login_page.enter_password("ValidPass123")
+        self.login_page.click_login()
+        assert self.dashboard_page.is_dashboard_displayed(), "User is not redirected to dashboard after valid login."
+
+    def test_TC_LOGIN_002_invalid_password(self):
+        """
+        TC_LOGIN_002: Invalid Password
+        Steps:
+        1. Navigate to the login page.
+        2. Enter valid email/username and invalid password.
+        3. Click the 'Login' button.
+        Expected:
+        - Login page is displayed.
+        - Fields accept input.
+        - Error message 'Invalid credentials' is shown. User remains on login page.
+        """
+        # Navigate to login page is assumed in setup
+        assert self.login_page.is_displayed(), "Login page is not displayed."
+        self.login_page.enter_username("user@example.com")
+        self.login_page.enter_password("WrongPass456")
+        self.login_page.click_login()
+        error_msg = self.login_page.get_error_message()
+        assert "Invalid credentials" in error_msg, f"Expected 'Invalid credentials' error, got: {error_msg}"
+        assert self.login_page.is_displayed(), "User should remain on login page after invalid login."
