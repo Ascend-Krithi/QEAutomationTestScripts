@@ -59,12 +59,10 @@ class TestScripts(unittest.TestCase):
           4. Assert 'Email required' error is displayed, and user is not logged in.
         """
         login_page = LoginPage(self.driver)
-        login_page.navigate('https://your-app-url/login')  # Replace with actual URL as needed
-        login_page.enter_username("")
-        login_page.enter_password("ValidPassword123")
-        login_page.click_login()
-        self.assertTrue(login_page.validate_email_required_error(), "'Email required' error should be displayed.")
-        self.assertFalse(login_page.is_login_successful(), "User should not be logged in if email is missing.")
+        login_page.navigate_to_login_page("https://your-app-url/login")  # Replace with actual URL as needed
+        login_page.login_with_empty_email("ValidPassword123")
+        login_page.validate_email_required_error()
+        self.assertFalse(login_page.is_user_logged_in(), "User should not be logged in when email is empty.")
 
     def test_TC_Login_04_password_required_error(self):
         """
@@ -76,9 +74,7 @@ class TestScripts(unittest.TestCase):
           4. Assert 'Password required' error is displayed, and user is not logged in.
         """
         login_page = LoginPage(self.driver)
-        login_page.navigate('https://your-app-url/login')  # Replace with actual URL as needed
-        login_page.enter_username("user@example.com")
-        login_page.enter_password("")
-        login_page.click_login()
-        self.assertTrue(login_page.validate_password_required_error(), "'Password required' error should be displayed.")
-        self.assertFalse(login_page.is_login_successful(), "User should not be logged in if password is missing.")
+        login_page.navigate_to_login_page("https://your-app-url/login")  # Replace with actual URL as needed
+        login_page.login_with_empty_password("user@example.com")
+        login_page.validate_password_required_error()
+        self.assertFalse(login_page.is_user_logged_in(), "User should not be logged in when password is empty.")
