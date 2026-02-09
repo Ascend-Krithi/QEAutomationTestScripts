@@ -43,3 +43,21 @@ def test_TC_LOGIN_001(driver):
     login_page.click_login()
     dashboard = DashboardPage(driver)
     assert dashboard.is_dashboard_displayed()
+
+# Test Case TC_LOGIN_002: Invalid credentials
+
+def test_TC_LOGIN_002(driver):
+    login_page = LoginPage(driver)
+    login_page.navigate_to_login()
+    login_page.enter_invalid_credentials('wronguser@example.com', 'WrongPassword')
+    login_page.click_login()
+    assert login_page.validate_error_message('Invalid credentials')
+
+# Test Case TC_LOGIN_003: Empty fields
+
+def test_TC_LOGIN_003(driver):
+    login_page = LoginPage(driver)
+    login_page.navigate_to_login()
+    login_page.leave_fields_empty()
+    login_page.click_login()
+    assert login_page.validate_error_message('Fields cannot be empty')
