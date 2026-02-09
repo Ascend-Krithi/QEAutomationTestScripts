@@ -93,6 +93,44 @@ class TestRuleEngine:
         self.rule_engine.simulate_deposit(500)
         assert "transfer" in self.deposit_page.get_transfer_message().lower(), "Existing rules did not execute as expected."
 
+    # TC-FT-003: Multi-condition rule definition and validation
+    def test_multi_condition_rule_definition_and_validation(self):
+        # Step 1: Define rule with conditions (balance >= 1000, source = 'salary')
+        rule_data = {
+            "trigger": {"type": "after_deposit"},
+            "action": {"type": "fixed_amount", "amount": 50},
+            "conditions": [
+                {"type": "balance_threshold", "operator": ">=", "value": 1000},
+                {"type": "transaction_source", "value": "salary"}
+            ]
+        }
+        self.rule_engine.define_rule_with_conditions(rule_data)
+        assert "accepted" in self.rule_engine.get_success_message().lower(), "Rule was not accepted."
+        # Step 2: Simulate deposit from 'salary' when balance is 900
+        self.rule_engine.simulate_deposit_with_source(balance=900, deposit=100, source="salary")
+        assert self.rule_engine.validate_transfer_not_executed(), "Transfer should NOT be executed for balance < 1000."
+        # Step 3: Simulate deposit from 'salary' when balance is 1200
+        self.rule_engine.simulate_deposit_with_source(balance=1200, deposit=100, source="salary")
+        assert self.rule_engine.validate_transfer_executed(), "Transfer should be executed for balance >= 1000."
+
+    # TC-FT-004: Rule submission error handling
+    def test_rule_submission_error_handling(self):
+        # Step 1: Submit rule with missing trigger type
+        rule_data_missing_trigger = {
+            "action": {"type": "fixed_amount", "amount": 100},
+            "conditions": []
+        }
+        error_msg = self.rule_engine.submit_rule_missing_trigger(rule_data_missing_trigger)
+        assert "missing required field" in error_msg.lower(), "System did not return error for missing trigger type."
+        # Step 2: Submit rule with unsupported action type
+        rule_data_unsupported_action = {
+            "trigger": {"type": "specific_date", "date": "2024-07-01T10:00:00Z"},
+            "action": {"type": "unknown_action"},
+            "conditions": []
+        }
+        error_msg = self.rule_engine.submit_rule_unsupported_action(rule_data_unsupported_action)
+        assert "unsupported action type" in error_msg.lower(), "System did not return error for unsupported action type."
+
 @pytest.mark.performance
 def test_batch_load_and_evaluate_rules(rule_engine_page, perf_threshold_seconds=30):
     """
