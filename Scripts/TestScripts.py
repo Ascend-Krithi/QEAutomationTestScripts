@@ -19,6 +19,26 @@ class TestLoginFunctionality:
         assert result['success'] is False
         assert 'error' in result
 
+    # TC_Login_03: Leave email empty, enter valid password, verify 'Email required' error.
+    @pytest.mark.asyncio
+    async def test_empty_email_valid_password(self):
+        driver = ... # Provide Selenium WebDriver instance
+        base_url = ... # Provide base URL
+        login_page = LoginPage(driver, base_url)
+        login_page.navigate_to_login()
+        login_page.login_with_credentials(email="", password="ValidPassword123")
+        assert login_page.verify_error_message("Email required") is True
+
+    # TC_Login_04: Enter valid email, leave password empty, verify 'Password required' error.
+    @pytest.mark.asyncio
+    async def test_valid_email_empty_password(self):
+        driver = ... # Provide Selenium WebDriver instance
+        base_url = ... # Provide base URL
+        login_page = LoginPage(driver, base_url)
+        login_page.navigate_to_login()
+        login_page.login_with_credentials(email="user@example.com", password="")
+        assert login_page.verify_error_message("Password required") is True
+
 class TestRuleConfiguration:
     @pytest.mark.asyncio
     async def test_valid_rule_schema(self):
