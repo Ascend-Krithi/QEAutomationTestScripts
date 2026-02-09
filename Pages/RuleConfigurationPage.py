@@ -198,3 +198,69 @@ class RuleConfigurationPage:
             return True
         except NoSuchElementException:
             return False
+
+    # --- New Methods for Test Cases TC_SCRUM158_05 & TC_SCRUM158_06 ---
+
+    def prepare_invalid_trigger_schema(self):
+        """
+        Prepares a rule schema with an invalid trigger value for TC_SCRUM158_05.
+        """
+        schema = {
+            "trigger": "unknown_trigger",
+            "conditions": [
+                {"type": "amount_above", "value": 1000}
+            ],
+            "actions": [
+                {"type": "transfer", "amount": 100}
+            ]
+        }
+        self.prepare_rule_schema(schema)
+
+    def prepare_incomplete_condition_schema(self):
+        """
+        Prepares a rule schema with a condition missing required parameters for TC_SCRUM158_06.
+        """
+        schema = {
+            "conditions": [
+                {"type": "amount_above"}  # missing 'value' parameter
+            ],
+            "actions": [
+                {"type": "transfer", "amount": 100}
+            ]
+        }
+        self.prepare_rule_schema(schema)
+
+    def submit_schema_and_check_error(self):
+        """
+        Submits the schema and checks for 400 Bad Request error about invalid values.
+        """
+        self.submit_rule()
+        error_message = self.get_schema_error_message()
+        return error_message
+
+    def validate_schema_and_check_error(self):
+        """
+        Validates schema and checks for error messages.
+        """
+        success, message = self.validate_schema()
+        if not success:
+            return message
+        return None
+
+    def run_tc_scrum158_05(self):
+        """
+        End-to-end automation for TC_SCRUM158_05.
+        """
+        self.prepare_invalid_trigger_schema()
+        error_message = self.validate_schema_and_check_error()
+        assert error_message is not None and "invalid value" in error_message.lower(), "Expected schema error for invalid trigger"
+        self.submit_schema_and_check_error()
+
+    def run_tc_scrum158_06(self):
+        """
+        End-to-end automation for TC_SCRUM158_06.
+        """
+        self.prepare_incomplete_condition_schema()
+        error_message = self.validate_schema_and_check_error()
+        assert error_message is not None and "incomplete condition" in error_message.lower(), "Expected schema error for incomplete condition"
+        self.submit_schema_and_check_error()
