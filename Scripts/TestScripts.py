@@ -4,6 +4,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from Pages.LoginPage import LoginPage
 from Pages.RuleManagementPage import RuleManagementPage
+from Pages.RuleManagerPage import RuleManagerPage
 
 class TestLoginFunctionality:
     def __init__(self, driver):
@@ -118,3 +119,47 @@ class TestRuleManagement:
         self.rule_page.verify_rule_accepted()
         self.rule_page.simulate_deposit(500)
         self.rule_page.verify_transfer_executed(50)
+
+# --- Appended robust test methods for new test cases ---
+
+class TestRuleManagementBulkAndSecurity:
+    def __init__(self, driver):
+        self.driver = driver
+        self.rule_mgmt_page = RuleManagementPage(driver)
+        self.rule_manager_page = RuleManagerPage(driver)
+
+    def test_bulk_rule_loading_and_evaluation_performance(self):
+        """
+        TC-FT-007: Bulk Rule Loading and Evaluation Performance
+        1. Load 10,000 valid rules into the system as a batch JSON.
+        2. Trigger evaluation for all rules.
+        3. Verify that loading and evaluation complete within acceptable time limits (e.g., 60 seconds).
+        """
+        # Generate 10,000 valid rules
+        bulk_rules = [
+            {
+                "trigger": {"type": "specific_date", "date": "2024-07-01T10:00:00Z"},
+                "action": {"type": "fixed_amount", "amount": 100},
+                "conditions": [{"type": "balance_threshold", "value": "1000"}]
+            }
+            for _ in range(10000)
+        ]
+        # Load bulk rules
+        self.rule_mgmt_page.load_bulk_rules(bulk_rules)
+        # Evaluate all rules
+        self.rule_mgmt_page.evaluate_all_rules()
+        # Verify performance (e.g., must complete within 60 seconds)
+        self.rule_mgmt_page.verify_bulk_performance(max_time_seconds=60)
+
+    def test_sql_injection_rule_is_rejected(self):
+        """
+        TC-FT-008: SQL Injection Rule Rejection
+        1. Submit a rule with SQL injection in a field value.
+        2. Verify that the system rejects the rule and does not execute any SQL.
+        """
+        sql_injection_rule = {
+            "trigger": {"type": "specific_date", "date": "2024-07-01T10:00:00Z"},
+            "action": {"type": "fixed_amount", "amount": 100},
+            "conditions": [{"type": "balance_threshold", "value": "1000; DROP TABLE users;--"}]
+        }
+        self.rule_manager_page.submit_sql_injection_rule(sql_injection_rule)
