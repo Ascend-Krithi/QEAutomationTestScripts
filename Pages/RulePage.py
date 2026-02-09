@@ -1,173 +1,90 @@
 import time
 from selenium.webdriver.common.by import By
-from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 class RulePage:
-    def __init__(self, driver: WebDriver):
+    def __init__(self, driver):
         self.driver = driver
 
-    def define_rule(self, trigger_type=None, action_type=None, amount=None, conditions=None):
-        # Placeholder: Update with real locators
-        if trigger_type:
-            self.driver.find_element(By.ID, 'trigger-type').send_keys(trigger_type)
-        if action_type:
-            self.driver.find_element(By.ID, 'action-type').send_keys(action_type)
-        if amount:
-            self.driver.find_element(By.ID, 'action-amount').send_keys(str(amount))
-        if conditions:
-            for cond in conditions:
-                if cond['type'] == 'balance_threshold':
-                    self.driver.find_element(By.ID, 'balance-threshold').send_keys(str(cond['value']))
-                if cond['type'] == 'transaction_source':
-                    self.driver.find_element(By.ID, 'transaction-source').send_keys(cond['value'])
-        self.driver.find_element(By.ID, 'submit-rule').click()
-
-    def get_rule_submission_result(self):
-        # Placeholder: Update with real locators
-        return self.driver.find_element(By.ID, 'rule-result').text
-
-    def submit_rule_with_missing_trigger(self, action_type=None, amount=None, conditions=None):
-        # Simulate missing trigger
-        if action_type:
-            self.driver.find_element(By.ID, 'action-type').send_keys(action_type)
-        if amount:
-            self.driver.find_element(By.ID, 'action-amount').send_keys(str(amount))
-        self.driver.find_element(By.ID, 'submit-rule').click()
-
-    def get_error_message(self):
-        # Placeholder: Update with real locators
-        return self.driver.find_element(By.ID, 'error-message').text
-
-    def load_bulk_rules_and_evaluate(self, rules_batch):
+    def define_percentage_rule(self, trigger_type, percentage):
         """
-        Loads a batch of rules and triggers evaluation for all rules simultaneously.
-        Args:
-            rules_batch (list): List of rule dicts to load.
-        Returns:
-            dict: {'load_time': float, 'evaluation_time': float, 'performance_ok': bool}
+        Defines a rule for percentage of deposit action.
+        :param trigger_type: The type of trigger (e.g., 'after_deposit')
+        :param percentage: The percentage to apply
         """
-        # Placeholder locators for bulk upload and evaluation
-        bulk_upload_btn = self.driver.find_element(By.ID, 'bulk-upload-btn')
-        bulk_upload_btn.click()
-        upload_input = self.driver.find_element(By.ID, 'bulk-upload-input')
-        # Convert rules_batch to JSON string for upload
-        import json
-        rules_json = json.dumps(rules_batch)
-        upload_input.send_keys(rules_json)
-        start = time.time()
-        self.driver.find_element(By.ID, 'bulk-upload-submit').click()
-        # Wait for upload completion indicator
-        self._wait_for_element(By.ID, 'bulk-upload-success', timeout=120)
-        load_time = time.time() - start
-
-        # Trigger evaluation for all rules
-        eval_btn = self.driver.find_element(By.ID, 'evaluate-all-rules-btn')
-        eval_btn.click()
-        eval_start = time.time()
-        self._wait_for_element(By.ID, 'evaluation-complete', timeout=300)
-        evaluation_time = time.time() - eval_start
-
-        # Check performance criteria
-        performance_ok = (load_time <= 60) and (evaluation_time <= 180)
-        return {
-            'load_time': load_time,
-            'evaluation_time': evaluation_time,
-            'performance_ok': performance_ok
-        }
-
-    def submit_rule_with_sql_injection(self, rule_data):
-        """
-        Submits a rule with SQL injection payload and verifies system rejection.
-        Args:
-            rule_data (dict): Rule payload with SQL injection.
-        Returns:
-            dict: {'rejected': bool, 'error_message': str}
-        """
-        # Fill rule fields using locators
-        trigger = rule_data.get('trigger', {})
-        action = rule_data.get('action', {})
-        conditions = rule_data.get('conditions', [])
-
-        if trigger.get('type'):
-            self.driver.find_element(By.ID, 'trigger-type').send_keys(trigger['type'])
-        if trigger.get('date'):
-            self.driver.find_element(By.ID, 'trigger-date').send_keys(trigger['date'])
-        if action.get('type'):
-            self.driver.find_element(By.ID, 'action-type').send_keys(action['type'])
-        if action.get('amount'):
-            self.driver.find_element(By.ID, 'action-amount').send_keys(str(action['amount']))
-        for cond in conditions:
-            if cond['type'] == 'balance_threshold':
-                self.driver.find_element(By.ID, 'balance-threshold').send_keys(str(cond['value']))
-            if cond['type'] == 'transaction_source':
-                self.driver.find_element(By.ID, 'transaction-source').send_keys(cond['value'])
-        self.driver.find_element(By.ID, 'submit-rule').click()
-
-        # Wait for error message
-        error_message = self._wait_for_element(By.ID, 'error-message', timeout=10).text
-        rejected = 'SQL' in error_message or 'invalid' in error_message.lower() or 'rejected' in error_message.lower()
-        return {'rejected': rejected, 'error_message': error_message}
-
-    def _wait_for_element(self, by, value, timeout=30):
-        """
-        Waits for an element to be present and visible.
-        Args:
-            by (By): Selenium By selector.
-            value (str): Locator value.
-            timeout (int): Timeout in seconds.
-        Returns:
-            WebElement: Found element.
-        """
-        from selenium.webdriver.support.ui import WebDriverWait
-        from selenium.webdriver.support import expected_conditions as EC
-        return WebDriverWait(self.driver, timeout).until(
-            EC.visibility_of_element_located((by, value))
+        # Locate and click 'Add Rule' button
+        add_rule_btn = self.driver.find_element(By.ID, 'add-rule')
+        add_rule_btn.click()
+        # Select trigger type
+        trigger_dropdown = self.driver.find_element(By.ID, 'trigger-type')
+        trigger_dropdown.click()
+        trigger_option = self.driver.find_element(By.XPATH, f"//option[@value='{trigger_type}']")
+        trigger_option.click()
+        # Set percentage value
+        percentage_field = self.driver.find_element(By.ID, 'percentage-value')
+        percentage_field.clear()
+        percentage_field.send_keys(str(percentage))
+        # Save rule
+        save_btn = self.driver.find_element(By.ID, 'save-rule')
+        save_btn.click()
+        # Wait for confirmation
+        WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, 'div.rule-success'))
         )
 
-    def store_rule_in_postgresql(self, rule_data):
+    def define_currency_conversion_rule(self, trigger_type, currency, amount):
         """
-        Simulates storing a rule in PostgreSQL via UI.
-        Args:
-            rule_data (dict): Rule data to store.
-        Returns:
-            str: Submission result text.
+        Defines a rule for currency conversion (future rule type).
+        :param trigger_type: The type of trigger (e.g., 'currency_conversion')
+        :param currency: The currency to convert to
+        :param amount: The fixed amount
         """
-        trigger = rule_data.get('trigger', {})
-        action = rule_data.get('action', {})
-        conditions = rule_data.get('conditions', [])
+        add_rule_btn = self.driver.find_element(By.ID, 'add-rule')
+        add_rule_btn.click()
+        trigger_dropdown = self.driver.find_element(By.ID, 'trigger-type')
+        trigger_dropdown.click()
+        trigger_option = self.driver.find_element(By.XPATH, f"//option[@value='{trigger_type}']")
+        trigger_option.click()
+        currency_field = self.driver.find_element(By.ID, 'currency-field')
+        currency_field.clear()
+        currency_field.send_keys(currency)
+        amount_field = self.driver.find_element(By.ID, 'fixed-amount')
+        amount_field.clear()
+        amount_field.send_keys(str(amount))
+        save_btn = self.driver.find_element(By.ID, 'save-rule')
+        save_btn.click()
+        # Wait for either success or graceful rejection message
+        WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_any_elements_located([
+                (By.CSS_SELECTOR, 'div.rule-success'),
+                (By.CSS_SELECTOR, 'div.rule-error')
+            ])
+        )
 
-        if trigger.get('type'):
-            self.driver.find_element(By.ID, 'trigger-type').send_keys(trigger['type'])
-        if trigger.get('date'):
-            self.driver.find_element(By.ID, 'trigger-date').send_keys(trigger['date'])
-        if action.get('type'):
-            self.driver.find_element(By.ID, 'action-type').send_keys(action['type'])
-        if action.get('amount'):
-            self.driver.find_element(By.ID, 'action-amount').send_keys(str(action['amount']))
-        for cond in conditions:
-            if cond['type'] == 'balance_threshold':
-                self.driver.find_element(By.ID, 'balance-threshold').send_keys(str(cond['value']))
-            if cond['type'] == 'transaction_source':
-                self.driver.find_element(By.ID, 'transaction-source').send_keys(cond['value'])
-        self.driver.find_element(By.ID, 'submit-rule').click()
-        return self.driver.find_element(By.ID, 'rule-result').text
+    def verify_rule_accepted(self):
+        """
+        Verifies that the rule was accepted.
+        """
+        success_msg = self.driver.find_element(By.CSS_SELECTOR, 'div.rule-success')
+        return success_msg.is_displayed()
 
-    def retrieve_rule_from_backend(self, rule_id):
+    def verify_rule_rejected_gracefully(self):
         """
-        Simulates retrieving a rule from backend via UI.
-        Args:
-            rule_id (str): Rule identifier.
-        Returns:
-            dict: Rule details as parsed from UI.
+        Verifies that a rule was rejected gracefully with a clear message.
         """
-        self.driver.find_element(By.ID, 'retrieve-rule-btn').click()
-        self.driver.find_element(By.ID, 'rule-id-input').clear()
-        self.driver.find_element(By.ID, 'rule-id-input').send_keys(rule_id)
-        self.driver.find_element(By.ID, 'retrieve-rule-submit').click()
-        import json
-        rule_text = self._wait_for_element(By.ID, 'rule-details', timeout=20).text
-        try:
-            rule_details = json.loads(rule_text)
-        except Exception:
-            rule_details = {'raw': rule_text}
-        return rule_details
+        error_msg = self.driver.find_element(By.CSS_SELECTOR, 'div.rule-error')
+        return error_msg.is_displayed() and 'not supported' in error_msg.text.lower()
+
+    def verify_existing_rules_execute(self):
+        """
+        Verifies that existing rules continue to function as expected.
+        """
+        rules_list = self.driver.find_elements(By.CSS_SELECTOR, 'div.rule-item')
+        for rule in rules_list:
+            if 'active' in rule.get_attribute('class'):
+                # Simulate execution or check status
+                status = rule.find_element(By.CSS_SELECTOR, 'span.rule-status')
+                if status.text.lower() != 'executed':
+                    return False
+        return True
