@@ -13,7 +13,23 @@ class TestLoginFunctionality:
 
     async def test_remember_me_functionality(self):
         await self.login_page.navigate()
-        await self.login_page.fill_email('
+        await self.login_page.fill_email('')
+
+    async def test_TC_Login_03_empty_email(self):
+        # TC_Login_03: Leave email empty, enter valid password, expect 'Email required' error
+        url = 'https://example.com/login'  # Replace with actual login page URL
+        valid_password = 'ValidPassword123'  # Replace with actual valid password
+        expected_error = 'Email required'
+        result = self.login_page.validate_empty_email_login(url, valid_password, expected_error)
+        assert result, f"Expected error '{expected_error}' not shown for empty email."
+
+    async def test_TC_Login_04_empty_password(self):
+        # TC_Login_04: Enter valid email, leave password empty, expect 'Password required' error
+        url = 'https://example.com/login'  # Replace with actual login page URL
+        valid_email = 'user@example.com'  # Replace with actual valid email
+        expected_error = 'Password required'
+        result = self.login_page.validate_empty_password_login(url, valid_email, expected_error)
+        assert result, f"Expected error '{expected_error}' not shown for empty password."
 
 class TestRuleConfiguration:
     def __init__(self, page):
