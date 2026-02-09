@@ -72,3 +72,39 @@ class TestLoginFunctionality:
         assert login_page.verify_login_page_displayed(), "Login page is not displayed."
         login_page.login("user@example.com", "WrongPass456")
         assert login_page.verify_invalid_credentials_error(), "Error message 'Invalid credentials' was not displayed."
+
+    @pytest.mark.asyncio
+    async def test_TC_LOGIN_003_email_required_error(self):
+        """
+        TC_LOGIN_003: Leave email/username empty, enter valid password, click login, expect 'Email/Username required' error.
+        Steps:
+            1. Navigate to login page
+            2. Leave email/username field empty, enter valid password
+            3. Click Login button
+            4. Verify error message 'Email/Username required' and user remains on login page
+        """
+        login_page = LoginPage(self.driver)
+        # Step 1: Navigate to login page (assume verify_login_page_displayed checks this)
+        assert login_page.verify_login_page_displayed(), "Login page is not displayed."
+        # Step 2: Leave email/username empty, enter valid password
+        login_page.login("", "ValidPass123")
+        # Step 3 & 4: Click Login and check for error
+        assert login_page.validate_email_required_error(), "Error message 'Email/Username required' was not displayed."
+
+    @pytest.mark.asyncio
+    async def test_TC_LOGIN_004_password_required_error(self):
+        """
+        TC_LOGIN_004: Enter valid email/username, leave password empty, click login, expect 'Password required' error.
+        Steps:
+            1. Navigate to login page
+            2. Enter valid email/username, leave password empty
+            3. Click Login button
+            4. Verify error message 'Password required' and user remains on login page
+        """
+        login_page = LoginPage(self.driver)
+        # Step 1: Navigate to login page
+        assert login_page.verify_login_page_displayed(), "Login page is not displayed."
+        # Step 2: Enter valid email/username, leave password empty
+        login_page.login("user@example.com", "")
+        # Step 3 & 4: Click Login and check for error
+        assert login_page.validate_password_required_error(), "Error message 'Password required' was not displayed."
