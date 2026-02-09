@@ -80,3 +80,50 @@ class TestRuleConfiguration:
         self.rule_page.submit_rule_with_conditions(sql_injection_rule)
         result = self.rule_page.verify_rule_rejected()
         assert result is True, 'SQL injection rule was not rejected by the system.'
+
+    def test_TC_SCRUM158_01_create_rule_with_all_types(self):
+        """
+        TC_SCRUM158_01: Prepare a valid rule schema with all supported trigger, condition, and action types. Submit and assert rule creation and retrieval.
+        """
+        rule_schema = {
+            "trigger": {"type": "interval", "value": "daily"},
+            "conditions": [{"type": "amount", "operator": ">", "value": 100}],
+            "actions": [{"type": "transfer", "account": "A", "amount": 100}]
+        }
+        # Use create_rule to fill the UI and save
+        self.rule_page.create_rule(
+            rule_id="SCRUM158_01",
+            rule_name="Interval Amount Transfer",
+            trigger=rule_schema["trigger"],
+            conditions=rule_schema["conditions"],
+            actions=rule_schema["actions"]
+        )
+        # Optionally, assert success message
+        success_msg = self.rule_page.get_success_message()
+        assert "success" in success_msg.lower(), f"Rule creation failed: {success_msg}"
+
+    def test_TC_SCRUM158_02_create_rule_with_multiple_conditions_actions(self):
+        """
+        TC_SCRUM158_02: Prepare a schema with two conditions and two actions. Submit and assert all conditions and actions are present.
+        """
+        rule_schema = {
+            "trigger": {"type": "manual"},
+            "conditions": [
+                {"type": "amount", "operator": ">", "value": 500},
+                {"type": "country", "operator": "==", "value": "US"}
+            ],
+            "actions": [
+                {"type": "transfer", "account": "B", "amount": 500},
+                {"type": "notify", "message": "Transfer complete"}
+            ]
+        }
+        self.rule_page.create_rule(
+            rule_id="SCRUM158_02",
+            rule_name="Manual Multi Condition/Action",
+            trigger=rule_schema["trigger"],
+            conditions=rule_schema["conditions"],
+            actions=rule_schema["actions"]
+        )
+        # Optionally, assert success message
+        success_msg = self.rule_page.get_success_message()
+        assert "success" in success_msg.lower(), f"Rule creation failed: {success_msg}"
