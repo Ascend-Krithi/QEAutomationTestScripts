@@ -2,6 +2,9 @@
 from Pages.RuleManagerPage import RuleManagerPage
 from selenium.webdriver.remote.webdriver import WebDriver
 import pytest
+from Pages.RuleEnginePage import RuleEnginePage
+from Pages.RulePage import RulePage
+from Pages.DepositPage import DepositPage
 
 class TestLoginFunctionality:
     def __init__(self, page):
@@ -52,3 +55,40 @@ class TestRuleManager:
             week_date = (start_date + datetime.timedelta(weeks=i)).isoformat() + "Z"
             self.rule_manager.simulate_time(week_date)
             assert self.rule_manager.is_transfer_executed("SCENARIO-2"), f"Transfer not executed for week {i+1}."
+
+class TestRuleEngine:
+    @pytest.fixture(autouse=True)
+    def setup(self, driver: WebDriver):
+        self.rule_engine = RuleEnginePage(driver)
+        self.deposit_page = DepositPage(driver)
+
+    def test_percentage_of_deposit_rule(self):
+        # Test Case TC-FT-005: Define rule for 10% of deposit, simulate deposit of 500
+        rule_data = {
+            "trigger": {"type": "after_deposit"},
+            "action": {"type": "percentage_of_deposit", "percentage": 10},
+            "conditions": []
+        }
+        self.rule_engine.define_rule(rule_data)
+        assert "accepted" in self.rule_engine.get_success_message().lower(), "Rule was not accepted."
+        self.rule_engine.simulate_deposit(500)
+        # Expect transfer of 50 units
+        assert "50" in self.deposit_page.get_transfer_message(), "Transfer of 50 units not executed."
+
+    def test_currency_conversion_rule_and_existing_rules(self):
+        # Test Case TC-FT-006: Define new rule with currency_conversion, verify existing rules
+        rule_data = {
+            "trigger": {"type": "currency_conversion", "currency": "EUR"},
+            "action": {"type": "fixed_amount", "amount": 100},
+            "conditions": []
+        }
+        self.rule_engine.define_rule(rule_data)
+        success_msg = self.rule_engine.get_success_message()
+        error_msg = self.rule_engine.get_error_message()
+        assert ("accepted" in success_msg.lower() or "rejected" in error_msg.lower()), "System did not gracefully handle new rule type."
+        # Verify existing rules function as expected
+        rules = self.rule_engine.list_existing_rules()
+        assert len(rules) > 0, "No existing rules found."
+        # Simulate deposit for existing rule
+        self.rule_engine.simulate_deposit(500)
+        assert "transfer" in self.deposit_page.get_transfer_message().lower(), "Existing rules did not execute as expected."
