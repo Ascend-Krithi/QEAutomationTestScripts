@@ -7,7 +7,7 @@ from selenium.webdriver.remote.webdriver import WebDriver
 class RuleConfigurationPage:
     """
     Page Object Model for Rule Configuration Page.
-    Generated to cover all locators in Locators.json for test cases TC-FT-005 and TC-FT-006.
+    Generated to cover all locators in Locators.json for test cases TC-FT-005, TC-FT-006, TC_SCRUM158_01, TC_SCRUM158_02.
     """
     def __init__(self, driver: WebDriver, timeout: int = 10):
         self.driver = driver
@@ -116,3 +116,18 @@ class RuleConfigurationPage:
     def get_schema_error_message(self) -> str:
         elem = self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "[data-testid='error-feedback-text']")))
         return elem.text
+
+    # Composite workflow for test cases TC_SCRUM158_01 and TC_SCRUM158_02
+    def create_rule_with_schema(self, rule_id: str, rule_name: str, schema_text: str) -> dict:
+        """
+        Automates the end-to-end process of rule creation with JSON schema validation.
+        Returns a dict with success/error messages.
+        """
+        self.enter_rule_id(rule_id)
+        self.enter_rule_name(rule_name)
+        self.enter_json_schema(schema_text)
+        self.click_validate_schema()
+        success = self.get_success_message()
+        error = self.get_schema_error_message()
+        self.click_save_rule()
+        return {"success": success, "error": error}
