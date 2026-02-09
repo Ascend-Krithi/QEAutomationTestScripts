@@ -115,3 +115,31 @@ class TestRuleConfiguration:
         self.rule_page.submit_rule()
         self.rule_page.wait_for_success()
         assert self.rule_page.verify_rule_stored(schema), "Rule with all conditions/actions not retrievable"
+
+    def test_TC_SCRUM158_03_recurring_interval_rule_weekly(self):
+        """
+        Implements Test Case TC_SCRUM158_03: Create a schema with recurring interval trigger (weekly), amount >= 1000, transfer action to account C, submit, and verify scheduling logic.
+        """
+        schema = {
+            "trigger": {"type": "interval", "value": "weekly"},
+            "conditions": [{"type": "amount", "operator": ">=", "value": 1000}],
+            "actions": [{"type": "transfer", "account": "C", "amount": 1000}]
+        }
+        self.rule_page.enter_rule_schema(schema)
+        self.rule_page.submit_rule()
+        self.rule_page.wait_for_success()
+        assert self.rule_page.verify_rule_stored(schema), "Rule not retrievable after creation"
+        assert self.rule_page.verify_rule_scheduling("weekly"), "Rule not scheduled for weekly execution"
+
+    def test_TC_SCRUM158_04_missing_trigger_schema_error(self):
+        """
+        Implements Test Case TC_SCRUM158_04: Prepare schema missing trigger field, submit, and verify schema error message.
+        """
+        schema = {
+            "conditions": [{"type": "amount", "operator": "<", "value": 50}],
+            "actions": [{"type": "transfer", "account": "D", "amount": 50}]
+        }
+        self.rule_page.enter_rule_schema(schema)
+        self.rule_page.submit_rule()
+        error_msg = self.rule_page.get_error_message()
+        assert error_msg is not None and "trigger" in error_msg.lower(), "Missing trigger field error not returned"
