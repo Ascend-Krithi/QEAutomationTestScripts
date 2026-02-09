@@ -108,3 +108,27 @@ class TestRuleConfiguration:
         page = RuleConfigurationPage(driver)
         result = page.create_rule_with_minimal_schema_TC_SCRUM158_07()
         assert result is True, "Rule was not created successfully for minimal schema TC_SCRUM158_07"
+
+    def test_create_recurring_interval_rule_TC_SCRUM158_03(self):
+        """
+        TC_SCRUM158_03:
+        1. Create a schema with a recurring interval trigger (e.g., weekly).
+        2. Submit the rule and verify scheduling logic.
+        [Acceptance Criteria: Rule is accepted and scheduled for recurring evaluation.]
+        """
+        driver = ... # Setup Selenium WebDriver instance
+        page = RuleConfigurationPage(driver)
+        result = page.create_recurring_interval_rule_TC_SCRUM158_03()
+        assert result is True, "Rule was not scheduled for recurring evaluation for TC_SCRUM158_03"
+
+    def test_create_rule_missing_trigger_TC_SCRUM158_04(self):
+        """
+        TC_SCRUM158_04:
+        1. Prepare a schema missing the 'trigger' field.
+        2. Attempt to create rule and verify error message.
+        [Acceptance Criteria: Schema is rejected with error indicating missing required field.]
+        """
+        driver = ... # Setup Selenium WebDriver instance
+        page = RuleConfigurationPage(driver)
+        result = page.create_rule_missing_trigger_TC_SCRUM158_04()
+        assert result is True, "Error message for missing 'trigger' field not shown for TC_SCRUM158_04"
