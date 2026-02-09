@@ -50,6 +50,7 @@ class RuleConfigurationPage:
     def select_trigger(self, trigger):
         trigger_type_dropdown = self.wait_for_element(self.locators["triggerTypeDropdown"])
         trigger_type_dropdown.click()
+        supported_triggers = ["after_deposit", "specific_date", "interval", "manual"]
         if trigger["type"] == "after_deposit":
             after_deposit_toggle = self.wait_for_element(self.locators["afterDepositToggle"])
             if not after_deposit_toggle.is_selected():
@@ -67,6 +68,7 @@ class RuleConfigurationPage:
         elif trigger["type"] == "manual":
             trigger_type_dropdown.send_keys("manual")
         else:
+            # Unsupported trigger type for TC_SCRUM158_05
             trigger_type_dropdown.send_keys(trigger["type"])
 
     def add_conditions(self, conditions):
@@ -83,24 +85,9 @@ class RuleConfigurationPage:
                 if "operator" in condition:
                     operator_dropdown = self.wait_for_element(self.locators["operatorDropdown"])
                     operator_dropdown.send_keys(condition["operator"])
-            elif condition.get("type") == "country":
-                # No explicit locator, use dropdown and send_keys
-                if "value" in condition:
-                    condition_type_dropdown.send_keys("country")
-                    self.driver.find_element(By.CSS_SELECTOR, "input[name='country']").send_keys(condition["value"])
-                if "operator" in condition:
-                    operator_dropdown = self.wait_for_element(self.locators["operatorDropdown"])
-                    operator_dropdown.send_keys(condition["operator"])
-            elif "balance_limit" in condition:
-                balance_input = self.wait_for_element(self.locators["balanceThresholdInput"])
-                balance_input.clear()
-                balance_input.send_keys(str(condition["balance_limit"]))
             if "source" in condition:
                 source_dropdown = self.wait_for_element(self.locators["transactionSourceDropdown"])
                 source_dropdown.send_keys(condition["source"])
-            if "operator" in condition:
-                operator_dropdown = self.wait_for_element(self.locators["operatorDropdown"])
-                operator_dropdown.send_keys(condition["operator"])
 
     def select_action(self, action):
         action_type_dropdown = self.wait_for_element(self.locators["actionTypeDropdown"])
@@ -115,34 +102,12 @@ class RuleConfigurationPage:
                 amount_input = self.wait_for_element(self.locators["transferAmountInput"])
                 amount_input.clear()
                 amount_input.send_keys(str(action["amount"]))
-        elif action["type"] == "notify":
-            # No explicit locator, assume a message input appears
-            if "message" in action:
-                try:
-                    notify_input = self.driver.find_element(By.CSS_SELECTOR, "input[name='notify-message']")
-                    notify_input.clear()
-                    notify_input.send_keys(action["message"])
-                except NoSuchElementException:
-                    pass
-        elif action["type"] == "fixed_amount":
-            amount_input = self.wait_for_element(self.locators["transferAmountInput"])
-            amount_input.clear()
-            amount_input.send_keys(str(action["amount"]))
-        elif action["type"] == "percentage_of_deposit":
-            percentage_input = self.wait_for_element(self.locators["percentageInput"])
-            percentage_input.clear()
-            percentage_input.send_keys(str(action["percentage"]))
         if "destination_account" in action:
             dest_account_input = self.wait_for_element(self.locators["destinationAccountInput"])
             dest_account_input.clear()
             dest_account_input.send_keys(action["destination_account"])
 
     def select_actions(self, actions):
-        """
-        New method: Handles multiple actions for rule configuration.
-        Arguments:
-            actions: list of action dicts
-        """
         for action in actions:
             self.select_action(action)
 
@@ -165,17 +130,6 @@ class RuleConfigurationPage:
 
     # --- New Methods for Test Cases ---
     def submit_rule_schema(self, rule_id, rule_name, trigger, conditions, actions):
-        """
-        Handles schemas with multiple triggers, conditions, and actions for TC_SCRUM158_01 and TC_SCRUM158_02.
-        Arguments:
-            rule_id: str
-            rule_name: str
-            trigger: dict
-            conditions: list of dict
-            actions: list of dict
-        Returns:
-            (bool, str): Success flag and message
-        """
         self.fill_rule_form(rule_id=rule_id, rule_name=rule_name)
         self.select_trigger(trigger)
         self.add_conditions(conditions)
@@ -183,18 +137,34 @@ class RuleConfigurationPage:
         self.save_rule()
         return self.validate_rule_acceptance()
 
-    def retrieve_rule(self, rule_id):
-        """
-        Retrieves rule from UI for validation.
-        Arguments:
-            rule_id: str
-        Returns:
-            (bool, str): Success flag and message
-        """
+    def submit_schema_and_validate_error(self, rule_id, rule_name, trigger, conditions, actions):
+        self.fill_rule_form(rule_id=rule_id, rule_name=rule_name)
+        self.select_trigger(trigger)
+        self.add_conditions(conditions)
+        self.select_actions(actions)
+        self.save_rule()
+        # For TC_SCRUM158_05: expect error
         try:
-            rule_row = self.driver.find_element(By.CSS_SELECTOR, f"tr[data-rule-id='{rule_id}']")
-            return True, rule_row.text
-        except NoSuchElementException:
-            return False, f"Rule with ID {rule_id} not found."
+            error_msg = WebDriverWait(self.driver, self.timeout).until(
+                EC.visibility_of_element_located(self.locators["schemaErrorMessage"])
+            )
+            return False, error_msg.text
+        except TimeoutException:
+            return False, "Expected error message not found."
+
+    def submit_schema_and_validate_success(self, rule_id, rule_name, trigger, conditions, actions):
+        self.fill_rule_form(rule_id=rule_id, rule_name=rule_name)
+        self.select_trigger(trigger)
+        self.add_conditions(conditions)
+        self.select_actions(actions)
+        self.save_rule()
+        # For TC_SCRUM158_06: expect success
+        try:
+            success_msg = WebDriverWait(self.driver, self.timeout).until(
+                EC.visibility_of_element_located(self.locators["successMessage"])
+            )
+            return True, success_msg.text
+        except TimeoutException:
+            return False, "Expected success message not found."
 
 # --- End of RuleConfigurationPage.py ---
