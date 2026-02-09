@@ -37,3 +37,29 @@ class TestRuleConfiguration:
         # Submit invalid schema and check error message
         error_msg = self.page.submit_invalid_schema()
         assert 'trigger' in error_msg.lower(), f"Expected error about missing trigger, got: {error_msg}"
+
+    def test_TC_SCRUM158_05_invalid_trigger_schema(self):
+        """
+        TC_SCRUM158_05: Prepare a rule schema with invalid trigger value and submit. Expect error about invalid value.
+        """
+        # Prepare schema with invalid trigger
+        schema = {
+            'trigger': 'INVALID_TRIGGER',  # intentionally invalid
+            'conditions': [{'type': 'amount', 'value': 100}],
+            'actions': [{'type': 'notify'}]
+        }
+        error_msg = self.page.automate_invalid_trigger_schema(schema)
+        assert 'invalid trigger' in error_msg.lower(), f"Expected error about invalid trigger, got: {error_msg}"
+
+    def test_TC_SCRUM158_06_missing_condition_schema(self):
+        """
+        TC_SCRUM158_06: Prepare a rule schema with condition missing required parameters and submit. Expect error about incomplete condition.
+        """
+        # Prepare schema with missing condition parameters
+        schema = {
+            'trigger': 'transaction',
+            'conditions': [{'type': 'amount'}],  # missing 'value' or other required fields
+            'actions': [{'type': 'notify'}]
+        }
+        error_msg = self.page.automate_missing_condition_schema(schema)
+        assert 'condition' in error_msg.lower() or 'parameter' in error_msg.lower(), f"Expected error about incomplete condition, got: {error_msg}"
