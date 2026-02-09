@@ -180,5 +180,33 @@ class TestLogin(unittest.TestCase):
             "Session did not persist as expected after browser restart with 'Remember Me' selected."
         )
 
+    def test_TC_LOGIN_009_rapid_invalid_login_attempts(self):
+        """
+        TC_LOGIN_009: Rapid invalid login attempts (10x) with wronguser@example.com / WrongPassword.
+        System should detect and apply lockout, rate limiting, or captcha.
+        """
+        result = self.login_page.perform_rapid_invalid_login_attempts(
+            username="wronguser@example.com",
+            password="WrongPassword",
+            attempts=10
+        )
+        self.assertTrue(
+            result['lockout_detected'] or result['rate_limit_detected'] or result['captcha_detected'],
+            "System did not apply lockout, rate limiting, or captcha after rapid invalid login attempts."
+        )
+
+    def test_TC_LOGIN_010_case_sensitivity_validation(self):
+        """
+        TC_LOGIN_010: Login with USER@EXAMPLE.COM / ValidPassword123 in different cases. Only exact match should succeed.
+        """
+        username = "USER@EXAMPLE.COM"
+        password = "ValidPassword123"
+        url = "https://example.com/login"
+        results = self.login_page.validate_case_sensitivity_login(username, password, url)
+        self.assertTrue(results['exact_case_success'], "Login with exact case should succeed.")
+        self.assertFalse(results['upper_case_success'], "Login with uppercase should fail.")
+        self.assertFalse(results['lower_case_success'], "Login with lowercase should fail.")
+        self.assertFalse(results['mixed_case_success'], "Login with mixed case should fail.")
+
 if __name__ == '__main__':
     unittest.main()
