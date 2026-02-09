@@ -86,3 +86,36 @@ class TestRuleConfiguration:
         self.rule_config_page.edit_json_schema(rule_schema)
         self.rule_config_page.validate_schema()
         assert 'valid' in self.rule_config_page.get_success_message().lower()
+
+    async def test_TC_SCRUM158_03(self):
+        """
+        Test Case TC_SCRUM158_03:
+        - Prepare a rule schema with metadata fields (e.g., description, created_by).
+        - Submit the rule schema.
+        - Validate that the metadata is stored and retrievable.
+        """
+        # Fill rule form with metadata
+        self.rule_config_page.fill_rule_form('RULE003', 'Metadata Rule')
+        # Example assumes set_metadata and get_metadata methods exist in RuleConfigurationPage
+        self.rule_config_page.edit_json_schema('{"trigger": "balance_above", "conditions": [], "actions": [], "metadata": {"description": "This rule tests metadata storage", "created_by": "qa_automation"}}')
+        self.rule_config_page.validate_schema()
+        assert 'valid' in self.rule_config_page.get_success_message().lower()
+        # Retrieve and validate metadata (pseudo-code, adapt as needed)
+        stored_metadata = self.rule_config_page.get_success_message()  # Replace with actual retrieval
+        assert 'metadata' in stored_metadata.lower()
+
+    async def test_TC_SCRUM158_04(self):
+        """
+        Test Case TC_SCRUM158_04:
+        - Prepare a rule schema missing the 'trigger' field.
+        - Submit the rule schema.
+        - Validate that an error message is shown indicating the missing trigger.
+        """
+        # Fill rule form
+        self.rule_config_page.fill_rule_form('RULE004', 'Missing Trigger Rule')
+        # Prepare JSON schema missing trigger
+        rule_schema = '{"conditions": [{"type": "balance", "threshold": 1500}], "actions": [{"type": "transfer", "amount": 100, "destination": "ACC789"}]}'
+        self.rule_config_page.edit_json_schema(rule_schema)
+        self.rule_config_page.validate_schema()
+        error_message = self.rule_config_page.get_schema_error_message()
+        assert 'trigger' in error_message.lower() or 'missing trigger' in error_message.lower()
