@@ -84,3 +84,37 @@ class TestRuleManagement:
         # Verify that the rule executed unconditionally
         result = self.rule_page.verify_rule_execution()
         assert "Executed" in result, f"Rule was not executed as expected. Got: {result}"
+
+    def test_percentage_of_deposit_rule_execution(self):
+        """
+        TC-FT-005:
+        1. Define a rule for 10% of deposit action.
+        2. Simulate deposit of 500 units.
+        3. Verify rule is accepted.
+        4. Verify transfer of 50 units is executed.
+        """
+        # Define percentage_of_deposit rule
+        self.rule_page.define_percentage_of_deposit_rule(10)
+        # Verify rule acceptance
+        self.rule_page.verify_rule_accepted()
+        # Simulate deposit of 500 units
+        self.rule_page.simulate_deposit(500)
+        # Verify transfer of 50 units is executed
+        self.rule_page.verify_transfer_executed(50)
+
+    def test_future_rule_type_handling_and_existing_rule_execution(self):
+        """
+        TC-FT-006:
+        1. Define a rule with a new, future rule type (e.g., 'currency_conversion').
+        2. Verify system accepts or gracefully rejects with a clear message.
+        3. Verify existing rules continue to execute as before.
+        """
+        # Define future rule type
+        self.rule_page.define_future_rule_type("currency_conversion", "EUR", "fixed_amount", 100)
+        # Verify system acceptance or graceful rejection
+        self.rule_page.verify_future_rule_handling()
+        # Trigger an existing rule (e.g., percentage_of_deposit rule)
+        self.rule_page.define_percentage_of_deposit_rule(10)
+        self.rule_page.verify_rule_accepted()
+        self.rule_page.simulate_deposit(500)
+        self.rule_page.verify_transfer_executed(50)
