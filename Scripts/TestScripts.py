@@ -1,4 +1,3 @@
-
 import selenium.webdriver as webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -80,3 +79,35 @@ class TestRuleManagement:
         await self.rule_page.submit_rule()
         error_msg = await self.rule_page.get_error_message()
         assert 'unsupported action type' in error_msg.lower(), 'Expected error for unsupported action type'
+
+    async def test_batch_rule_upload_and_evaluation_TC_FT_007(self):
+        """
+        TC-FT-007: Validate batch rule upload and evaluation.
+        """
+        await self.rule_page.navigate_to_rule_management()
+        # Path to batch rules JSON (should be present on the test runner machine)
+        batch_json_path = '/tmp/batch_rules.json'  # Update path as appropriate for your environment
+        self.rule_page.upload_rules_batch(batch_json_path)
+        self.rule_page.evaluate_all_rules()
+        # Optionally, verify that rules are present and evaluated
+        rules_text = self.rule_page.verify_existing_rules()
+        assert 'batch rule' in rules_text.lower(), 'Batch rules should be uploaded and listed.'
+
+    async def test_sql_injection_rejection_TC_FT_008(self):
+        """
+        TC-FT-008: Ensure SQL injection in rule submission is rejected.
+        """
+        await self.rule_page.navigate_to_rule_management()
+        sql_injection_rule = {
+            'type': 'transfer',
+            'trigger': {'type': 'deposit'},
+            'conditions': [
+                {'field': 'balance', 'operator': '>=', 'value': "1000; DROP TABLE rules;--"}
+            ],
+            'action': {'amount': 100}
+        }
+        self.rule_page.submit_rule_with_sql_injection(sql_injection_rule)
+        rejection_msg = self.rule_page.get_sql_injection_rejection_message()
+        assert (
+            'sql injection' in rejection_msg.lower() or 'invalid input' in rejection_msg.lower() or 'rejected' in rejection_msg.lower()
+        ), f'Expected SQL injection to be rejected, got: {rejection_msg}'
