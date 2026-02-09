@@ -148,3 +148,27 @@ async def test_TC_LOGIN_004_max_length_email_and_password(browser):
     login_page.click_login()
     # Validate either login success or error
     assert login_page.validate_login_success() or login_page.validate_login_error() != "", "Must show success or error for max-length inputs."
+
+# --- Appended test methods for TC_LOGIN_005 and TC_LOGIN_006 ---
+
+@pytest.mark.asyncio
+async def test_TC_LOGIN_005_empty_fields_error(browser):
+    """
+    TC_LOGIN_005: Navigate to login page, leave email and password empty, click login, validate error message 'Email/Username and Password required' and user remains on login page.
+    """
+    login_page = LoginPage(browser)
+    url = "https://example.com/login"  # Update to actual login URL
+    result = login_page.validate_login_empty_fields_tc(url)
+    assert result, "TC_LOGIN_005 failed: Error message or login page persistence not validated."
+
+@pytest.mark.asyncio
+async def test_TC_LOGIN_006_remember_me_session_persistence(browser):
+    """
+    TC_LOGIN_006: Navigate to login page, enter valid credentials, check 'Remember Me', click login, validate redirect to dashboard, close and reopen browser, revisit site, and validate user remains logged in.
+    """
+    login_page = LoginPage(browser)
+    url = "https://example.com/login"  # Update to actual login URL
+    email = "user@example.com"
+    password = "ValidPass123"
+    result = login_page.validate_remember_me_tc(url, email, password)
+    assert result, "TC_LOGIN_006 failed: 'Remember Me' session persistence not validated."
