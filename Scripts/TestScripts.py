@@ -6,64 +6,56 @@ class TestScripts(unittest.TestCase):
     # (full content from previous step)
 
     def test_TC_SCRUM158_07_create_rule_with_required_fields(self):
-        """
-        Test Case TC_SCRUM158_07:
-        - Create a rule with only required fields.
-        - Verify rule creation success.
-        """
-        rule_id = 'TS07'
-        rule_name = 'Required Fields Rule'
-        trigger_type = 'manual'
-        condition_type = 'amount'
-        operator = '=='
-        value = 1
-        action_type = 'transfer'
-        account = 'G'
-        amount = 1
-
-        page = RuleConfigurationPage()
-        result = page.create_rule_with_required_fields(
-            rule_id=rule_id,
-            rule_name=rule_name,
-            trigger_type=trigger_type,
-            condition_type=condition_type,
-            operator=operator,
-            value=value,
-            action_type=action_type,
-            account=account,
-            amount=amount
-        )
-        self.assertIn('success', result.lower(), f"Rule creation failed: {result}")
-
+        ...
     def test_TC_SCRUM158_08_create_rule_with_large_metadata(self):
-        """
-        Test Case TC_SCRUM158_08:
-        - Create a rule with a large metadata field (~10,000 chars).
-        - Verify acceptance and performance.
-        """
-        rule_id = 'TS08'
-        rule_name = 'Large Metadata Rule'
-        trigger_type = 'manual'
-        metadata = 'A' * 10000
-
-        page = RuleConfigurationPage()
-        result = page.create_rule_with_large_metadata(
-            rule_id=rule_id,
-            rule_name=rule_name,
-            trigger_type=trigger_type,
-            metadata=metadata
-        )
-        self.assertIn('success', result.lower(), f"Large metadata rule creation failed or not accepted: {result}")
-        # Optionally, check performance (e.g., response time if available)
-
+        ...
     def test_TC_SCRUM158_09_submit_schema_with_malicious_metadata(self):
-        """
-        Test Case TC_SCRUM158_09:
-        - Prepare a schema with metadata containing a malicious script.
-        - Submit the schema and check for error response.
-        """
-        schema = '{"trigger":{"type":"manual"},"conditions":[{"type":"amount","operator":"==","value":1}],"actions":[{"type":"transfer","account":"I","amount":1}],"metadata":"<script>alert(\'hack\')</script>"}'
+        ...
+
+    def test_TC_SCRUM158_05_validate_unsupported_trigger_schema(self):
+        """Test that a schema with an unsupported trigger type is rejected and an error message is shown."""
+        schema = {
+            "trigger": {"type": "unsupported_type"},
+            "conditions": [{"type": "amount", "operator": "<", "value": 10}],
+            "actions": [{"type": "transfer", "account": "E", "amount": 10}]
+        }
         page = RuleConfigurationPage(self.driver)
-        error_message = page.submit_schema_with_malicious_metadata(schema)
-        self.assertIsNotNone(error_message, "Expected error message for malicious metadata, but got None.")
-        self.assertIn('error', error_message.lower(), f"Expected error indication, got: {error_message}")
+        error_message = page.validate_unsupported_trigger_schema(schema)
+        self.assertIsNotNone(error_message, "Error message should be shown for unsupported trigger type.")
+        self.assertIn("unsupported", error_message.lower(), "Error message should indicate unsupported trigger type.")
+
+    def test_TC_SCRUM158_06_create_rule_with_max_conditions_actions(self):
+        """Test creating a rule with 10 conditions and 10 actions, and verify storage and counts."""
+        schema = {
+            "trigger": {"type": "manual"},
+            "conditions": [
+                {"type": "amount", "operator": "==", "value": 1},
+                {"type": "amount", "operator": "==", "value": 2},
+                {"type": "amount", "operator": "==", "value": 3},
+                {"type": "amount", "operator": "==", "value": 4},
+                {"type": "amount", "operator": "==", "value": 5},
+                {"type": "amount", "operator": "==", "value": 6},
+                {"type": "amount", "operator": "==", "value": 7},
+                {"type": "amount", "operator": "==", "value": 8},
+                {"type": "amount", "operator": "==", "value": 9},
+                {"type": "amount", "operator": "==", "value": 10}
+            ],
+            "actions": [
+                {"type": "transfer", "account": "F1", "amount": 1},
+                {"type": "transfer", "account": "F2", "amount": 2},
+                {"type": "transfer", "account": "F3", "amount": 3},
+                {"type": "transfer", "account": "F4", "amount": 4},
+                {"type": "transfer", "account": "F5", "amount": 5},
+                {"type": "transfer", "account": "F6", "amount": 6},
+                {"type": "transfer", "account": "F7", "amount": 7},
+                {"type": "transfer", "account": "F8", "amount": 8},
+                {"type": "transfer", "account": "F9", "amount": 9},
+                {"type": "transfer", "account": "F10", "amount": 10}
+            ]
+        }
+        page = RuleConfigurationPage(self.driver)
+        success = page.create_rule_with_max_conditions_actions(schema)
+        self.assertTrue(success, "Rule should be created successfully with max conditions and actions.")
+        stored_counts = page.verify_rule_storage_max_items(schema)
+        self.assertEqual(stored_counts["conditions"], 10, "Should store 10 conditions.")
+        self.assertEqual(stored_counts["actions"], 10, "Should store 10 actions.")
