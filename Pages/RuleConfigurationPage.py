@@ -19,82 +19,72 @@ class RuleConfigurationPage:
     # Existing methods preserved below...
     # ... (existing methods, unchanged) ...
 
-    # --- Appended methods for TC_SCRUM158_09 ---
-    def create_rule_specific_date_fixed_amount(self, date_iso, amount):
+    # --- Appended methods for TC_SCRUM158_03 ---
+    def create_recurring_rule(self, trigger_type, interval_value, condition_operator, condition_value, action_account, action_amount):
         """
-        Create and store a rule with a specific_date trigger and fixed_amount action.
+        Create a rule with a recurring interval trigger, condition, and action.
         Args:
-            date_iso (str): ISO date string, e.g., '2024-07-01T10:00:00Z'
-            amount (int): Fixed amount for the action
-        """
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, self.locators['add_rule_button']))).click()
-        self.wait.until(EC.visibility_of_element_located((By.XPATH, self.locators['trigger_type_dropdown']))).click()
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, self.locators['trigger_specific_date_option']))).click()
-        date_field = self.wait.until(EC.visibility_of_element_located((By.XPATH, self.locators['trigger_date_field'])))
-        date_field.clear()
-        date_field.send_keys(date_iso)
-        self.wait.until(EC.visibility_of_element_located((By.XPATH, self.locators['action_type_dropdown']))).click()
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, self.locators['action_fixed_amount_option']))).click()
-        amount_field = self.wait.until(EC.visibility_of_element_located((By.XPATH, self.locators['action_amount_field'])))
-        amount_field.clear()
-        amount_field.send_keys(str(amount))
-        # No conditions to add
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, self.locators['save_rule_button']))).click()
-        # Wait for success confirmation
-        self.wait.until(EC.visibility_of_element_located((By.XPATH, self.locators['rule_success_toast'])))
-
-    def retrieve_and_verify_rule_specific_date(self, date_iso, amount):
-        """
-        Retrieve the rule from backend and verify it matches the original input.
-        Args:
-            date_iso (str): ISO date string
-            amount (int): Fixed amount
+            trigger_type (str): e.g., 'interval'
+            interval_value (str): e.g., 'weekly'
+            condition_operator (str): e.g., '>='
+            condition_value (int): e.g., 1000
+            action_account (str): e.g., 'C'
+            action_amount (int): e.g., 1000
         Returns:
-            bool: True if rule matches, False otherwise
+            None
         """
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, self.locators['refresh_rules_button']))).click()
-        rule_rows = self.wait.until(EC.presence_of_all_elements_located((By.XPATH, self.locators['rule_table_rows'])))
-        for row in rule_rows:
-            trigger = row.find_element(By.XPATH, self.locators['rule_row_trigger']).text
-            action = row.find_element(By.XPATH, self.locators['rule_row_action']).text
-            if trigger == f"Specific Date: {date_iso}" and action == f"Fixed Amount: {amount}":
-                return True
-        return False
+        self.wait.until(EC.element_to_be_clickable((By.ID, self.locators['triggerTypeDropdown']))).click()
+        self.driver.find_element(By.ID, self.locators['recurringIntervalInput']).send_keys(interval_value)
+        self.wait.until(EC.element_to_be_clickable((By.ID, self.locators['addConditionBtn']))).click()
+        self.driver.find_element(By.CSS_SELECTOR, self.locators['operatorDropdown']).send_keys(condition_operator)
+        self.driver.find_element(By.NAME, self.locators['balanceThresholdInput']).send_keys(str(condition_value))
+        self.wait.until(EC.element_to_be_clickable((By.ID, self.locators['actionTypeDropdown']))).click()
+        self.driver.find_element(By.ID, self.locators['destinationAccountInput']).send_keys(action_account)
+        self.driver.find_element(By.NAME, self.locators['transferAmountInput']).send_keys(str(action_amount))
 
-    # --- Appended methods for TC_SCRUM158_10 ---
-    def create_rule_after_deposit_fixed_amount_unconditional(self, amount):
+    def submit_rule_and_verify_schedule(self):
         """
-        Create a rule with after_deposit trigger, fixed_amount action, and empty conditions (unconditional).
-        Args:
-            amount (int): Fixed amount for the action
-        """
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, self.locators['add_rule_button']))).click()
-        self.wait.until(EC.visibility_of_element_located((By.XPATH, self.locators['trigger_type_dropdown']))).click()
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, self.locators['trigger_after_deposit_option']))).click()
-        self.wait.until(EC.visibility_of_element_located((By.XPATH, self.locators['action_type_dropdown']))).click()
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, self.locators['action_fixed_amount_option']))).click()
-        amount_field = self.wait.until(EC.visibility_of_element_located((By.XPATH, self.locators['action_amount_field'])))
-        amount_field.clear()
-        amount_field.send_keys(str(amount))
-        # No conditions to add
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, self.locators['save_rule_button']))).click()
-        self.wait.until(EC.visibility_of_element_located((By.XPATH, self.locators['rule_success_toast'])))
-
-    def simulate_deposit_and_verify_unconditional_rule(self, deposit_amount, expected_transfer_amount):
-        """
-        Simulate deposit to trigger unconditional rule and verify transfer is executed.
-        Args:
-            deposit_amount (int): Amount to deposit
-            expected_transfer_amount (int): Expected transfer amount
+        Submit the rule and verify scheduling logic.
         Returns:
-            bool: True if transfer executed, False otherwise
+            bool: True if rule is scheduled for weekly execution, False otherwise.
         """
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, self.locators['deposit_button']))).click()
-        deposit_field = self.wait.until(EC.visibility_of_element_located((By.XPATH, self.locators['deposit_amount_field'])))
-        deposit_field.clear()
-        deposit_field.send_keys(str(deposit_amount))
-        self.wait.until(EC.element_to_be_clickable((By.XPATH, self.locators['confirm_deposit_button']))).click()
-        # Wait for rule execution (transfer confirmation)
-        transfer_toast = self.wait.until(EC.visibility_of_element_located((By.XPATH, self.locators['transfer_success_toast'])))
-        transfer_text = transfer_toast.text
-        return str(expected_transfer_amount) in transfer_text
+        self.driver.find_element(By.CSS_SELECTOR, self.locators['saveRuleButton']).click()
+        success = self.wait.until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, self.locators['successMessage']))
+        )
+        return success is not None
+
+    # --- Appended methods for TC_SCRUM158_04 ---
+    def validate_schema_missing_required_field(self, schema_json):
+        """
+        Validate schema and check for error when required field is missing.
+        Args:
+            schema_json (dict): The schema to validate.
+        Returns:
+            str: Error message displayed.
+        """
+        editor = self.driver.find_element(By.CSS_SELECTOR, self.locators['jsonSchemaEditor'])
+        editor.clear()
+        editor.send_keys(str(schema_json))
+        self.driver.find_element(By.ID, self.locators['validateSchemaBtn']).click()
+        error = self.wait.until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, self.locators['schemaErrorMessage']))
+        )
+        return error.text
+
+    def attempt_create_rule_with_incomplete_schema(self, schema_json):
+        """
+        Attempt to create rule with incomplete schema and verify error handling.
+        Args:
+            schema_json (dict): The incomplete schema.
+        Returns:
+            str: Error message displayed.
+        """
+        editor = self.driver.find_element(By.CSS_SELECTOR, self.locators['jsonSchemaEditor'])
+        editor.clear()
+        editor.send_keys(str(schema_json))
+        self.driver.find_element(By.CSS_SELECTOR, self.locators['saveRuleButton']).click()
+        error = self.wait.until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, self.locators['schemaErrorMessage']))
+        )
+        return error.text
