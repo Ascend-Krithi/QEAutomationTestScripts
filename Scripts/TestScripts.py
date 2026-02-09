@@ -1,7 +1,7 @@
 # TestScripts.py
 """
 Automation Test Scripts for Login Scenarios
-Covers: TC_LOGIN_005 (empty fields validation), TC_LOGIN_006 ('Remember Me' and session persistence), TC_LOGIN_007 (Forgot Password workflow), TC_LOGIN_008 (SQL Injection validation)
+Covers: TC_LOGIN_005 (empty fields validation), TC_LOGIN_006 ('Remember Me' and session persistence), TC_LOGIN_007 (Forgot Password flow), TC_LOGIN_008 (SQL Injection validation)
 Strict adherence to Selenium Python best practices, atomic methods, robust locator handling, and comprehensive docstrings.
 """
 
@@ -59,36 +59,38 @@ def test_login_remember_me_session_persistence(driver):
     session_persisted = dashboard_page.validate_session_after_browser_reopen(DASHBOARD_URL)
     assert session_persisted, "Session did not persist after browser reopen; dashboard not displayed."
 
-# --- TC_LOGIN_007: Forgot Password workflow ---
-def test_forgot_password_workflow(driver):
+# --- TC_LOGIN_007: Forgot Password flow ---
+def test_forgot_password_flow(driver):
     """
-    TC_LOGIN_007: Validate 'Forgot Password' workflow.
+    TC_LOGIN_007: Validate the Forgot Password flow.
     Steps:
     1. Navigate to login page.
-    2. Click 'Forgot Password' link.
+    2. Click the 'Forgot Password' link.
     3. Verify presence of password recovery form.
     """
     login_page = LoginPage(driver)
     login_page.navigate_to_login_page(LOGIN_URL)
     login_page.click_forgot_password()
-    recovery_form_displayed = login_page.is_password_recovery_form_displayed()
-    assert recovery_form_displayed, "Password recovery form is not displayed after clicking 'Forgot Password'."
+    assert login_page.is_password_recovery_form_displayed(), "Password recovery form was not displayed after clicking 'Forgot Password'."
 
 # --- TC_LOGIN_008: SQL Injection validation ---
-def test_login_sql_injection_validation(driver):
+def test_sql_injection_login(driver):
     """
-    TC_LOGIN_008: Validate login with SQL injection strings in email and password fields.
+    TC_LOGIN_008: Validate login with SQL injection strings.
     Steps:
     1. Navigate to login page.
-    2. Enter SQL injection string in email/username and/or password fields.
-    3. Click the 'Login' button.
-    4. Verify fields accept input, error message is shown, and no security breach occurs.
+    2. Enter SQL injection strings in email and password fields.
+    3. Click login.
+    4. Verify fields accept input, error message is 'Invalid credentials', and no security breach occurs.
+    Test Data:
+        Email: "' OR 1=1;--"
+        Password: "' OR 1=1;--"
     """
     login_page = LoginPage(driver)
     login_page.navigate_to_login_page(LOGIN_URL)
-    sql_email = "' OR 1=1;--"
-    sql_password = "' OR 1=1;--"
-    result = login_page.login_with_sql_injection(sql_email, sql_password)
-    assert result["fields_accept_input"], "SQL injection fields did not accept input as expected."
-    assert result["error_message"] == "Invalid credentials", f"Expected error message 'Invalid credentials', got '{result['error_message']}'."
-    assert not result["security_breach_detected"], "Security breach detected after SQL injection login attempt."
+    email_injection = "' OR 1=1;--"
+    password_injection = "' OR 1=1;--"
+    result = login_page.login_with_sql_injection(email_injection, password_injection)
+    assert result['fields_accept_input'], "Fields did not accept SQL injection input."
+    assert result['error_message'] == "Invalid credentials", f"Unexpected error message: {result['error_message']}"
+    assert not result['security_breach_detected'], "Security breach detected during SQL injection login attempt."
