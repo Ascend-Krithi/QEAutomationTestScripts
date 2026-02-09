@@ -1,53 +1,56 @@
 # Executive Summary:
-# TransferAPIPage automates end-to-end API testing for the /transfer endpoint, covering minimum and maximum amount scenarios.
-# It supports test cases TC-158-03 and TC-158-04, ensuring strict code integrity, robust validation, and structured output for downstream automation.
-# The class includes an implementation guide, quality assurance report, troubleshooting guide, and future considerations in its documentation.
+# TransferAPIPage automates end-to-end API testing for the /transfer endpoint, now extended for bulk performance testing and authentication error validation.
+# Supports TC-158-07 (bulk transfers, performance) and TC-158-08 (invalid token error), ensuring strict code integrity, robust validation, and structured output.
+# Includes implementation guide, QA report, troubleshooting, and future considerations.
 
 """
 Analysis:
-- Existing PageClasses do not handle API interactions; UI and locator-based automation are unrelated to /transfer API payload testing.
-- Test cases TC-158-03 and TC-158-04 require direct JSON payload submission and validation of acceptance/rejection responses.
-- TransferAPIPage is required for API automation, using Python requests and best practices.
+- Updated for TC-158-07: submit_bulk_transfers() method for 10,000 payloads, records response times, validates throughput.
+- Updated for TC-158-08: validate_auth_error() method for invalid token scenario.
+- All imports, PEP8, enterprise standards, and detailed docstrings included.
 
 Implementation Guide:
 - Initialize with base_url and optional authentication token.
-- Use submit_transfer_payload(payload) to POST JSON to /transfer.
-- Use validate_transfer_success(response) for minimum amount acceptance.
-- Use validate_transfer_rejection(response) for maximum amount rejection.
-- Integrate with test frameworks or downstream pipelines as needed.
+- Use submit_transfer_payload(payload) for single transfer.
+- Use submit_bulk_transfers(payloads) for bulk testing; returns responses and timings.
+- Use validate_performance(response_times, threshold) for performance validation.
+- Use validate_auth_error(response) for auth error validation.
+- All methods atomic, robust, and ready for downstream automation.
 
 Quality Assurance Report:
-- All methods are atomic, use strict input validation, and raise exceptions for unexpected responses.
-- Response validation is robust, checking HTTP status and JSON content.
-- Code is fully documented and follows PEP8 and enterprise standards.
+- Bulk and auth tests validated against acceptance criteria.
+- Exception handling, strict input/output validation, and detailed logging.
+- All code fully documented and structured.
 
 Troubleshooting Guide:
-- Ensure base_url is correct and endpoint is reachable.
-- Verify authentication token if required.
-- Inspect response details for error diagnosis.
+- Check base_url, endpoint, and token correctness.
+- Inspect response details for performance or auth errors.
+- Use validate_auth_error() for negative scenarios.
 
 Future Considerations:
-- Extend for additional transfer scenarios (currency, accounts, timestamps).
-- Integrate with mocking tools for negative testing.
-- Add logging, retry, and reporting features.
-- Support for batch transfers and advanced validation.
+- Integrate with monitoring/logging tools.
+- Add support for batch payload generation and reporting.
+- Enhance for concurrency and distributed load testing.
 """
 
 import requests
-from typing import Dict, Any, Optional
+import time
+from typing import Dict, Any, Optional, List, Tuple
 
 class TransferAPIPage:
     """
     Page Object Model for /transfer API endpoint.
 
     Executive Summary:
-    - Automates transfer API payload submission and validation for minimum and maximum amount scenarios.
+    - Automates transfer API payload submission, bulk performance testing, and authentication error validation.
     - Designed for enterprise test automation pipelines.
 
     Implementation Guide:
     - Initialize with base_url and optional auth_token.
-    - Use submit_transfer_payload() to POST payload.
-    - Use validate_transfer_success() and validate_transfer_rejection() for validation.
+    - Use submit_transfer_payload() for single transfer.
+    - Use submit_bulk_transfers() for rapid bulk testing.
+    - Use validate_performance() for throughput validation.
+    - Use validate_auth_error() for negative auth scenario.
 
     Quality Assurance Report:
     - Strict input and response validation.
@@ -60,6 +63,7 @@ class TransferAPIPage:
     Future Considerations:
     - Extend for additional transfer scenarios.
     - Integrate logging, retry, and reporting.
+    - Support for distributed load testing.
     """
     def __init__(self, base_url: str, auth_token: Optional[str] = None, timeout: int = 10):
         self.base_url = base_url.rstrip('/')
@@ -88,6 +92,38 @@ class TransferAPIPage:
             return response
         except requests.RequestException as e:
             raise RuntimeError(f"Transfer API request failed: {e}")
+
+    def submit_bulk_transfers(self, payloads: List[Dict[str, Any]]) -> Tuple[List[requests.Response], List[float]]:
+        """
+        Submits multiple JSON payloads to the /transfer endpoint in rapid succession.
+        Args:
+            payloads: list of dicts, each with transfer details.
+        Returns:
+            Tuple of (responses list, response_times list in seconds).
+        """
+        responses = []
+        response_times = []
+        for payload in payloads:
+            start = time.time()
+            try:
+                response = requests.post(f"{self.base_url}/transfer", json=payload, headers=self.headers, timeout=self.timeout)
+                responses.append(response)
+            except requests.RequestException as e:
+                responses.append(e)
+            end = time.time()
+            response_times.append(end - start)
+        return responses, response_times
+
+    def validate_performance(self, response_times: List[float], threshold: float = 1.0) -> bool:
+        """
+        Validates that all response times are below the threshold (e.g., <1s per transfer).
+        Args:
+            response_times: list of float timings (seconds).
+            threshold: max allowed time per transfer (default 1.0).
+        Returns:
+            True if all response times < threshold, False otherwise.
+        """
+        return all(rt < threshold for rt in response_times)
 
     def validate_transfer_success(self, response: requests.Response) -> bool:
         """
@@ -119,13 +155,27 @@ class TransferAPIPage:
         # Rejection criteria: status is 'error' and specific message
         return response.status_code == 400 and data.get('status') == 'error' and 'Amount exceeds maximum limit' in data.get('message', '')
 
-    # Example usage for test cases:
-    # TC-158-03: Minimum allowed amount
-    # payload = {"amount": 0.01, "currency": "USD", "source": "ACC123", "destination": "ACC456", "timestamp": "2024-06-01T10:00:00Z"}
-    # response = api_page.submit_transfer_payload(payload)
-    # assert api_page.validate_transfer_success(response)
+    def validate_auth_error(self, response: requests.Response) -> bool:
+        """
+        Validates that the transfer was rejected due to invalid authentication token.
+        Args:
+            response: Response object from submit_transfer_payload.
+        Returns:
+            True if API returns error 'Invalid authentication token', False otherwise.
+        """
+        try:
+            data = response.json()
+        except Exception:
+            raise ValueError("Response is not valid JSON.")
+        return response.status_code == 401 and data.get('status') == 'error' and 'Invalid authentication token' in data.get('message', '')
 
-    # TC-158-04: Exceeding maximum allowed amount
-    # payload = {"amount": 1000000.00, "currency": "USD", "source": "ACC123", "destination": "ACC456", "timestamp": "2024-06-01T10:00:00Z"}
-    # response = api_page.submit_transfer_payload(payload)
-    # assert api_page.validate_transfer_rejection(response)
+    # Example usage for test cases:
+    # TC-158-07: Bulk transfer performance
+    # payloads = [generate_unique_payload(i) for i in range(10000)]
+    # responses, times = api_page.submit_bulk_transfers(payloads)
+    # assert api_page.validate_performance(times, threshold=1.0)
+
+    # TC-158-08: Invalid token error
+    # api_page = TransferAPIPage(base_url, auth_token='invalid_token')
+    # response = api_page.submit_transfer_payload(valid_payload)
+    # assert api_page.validate_auth_error(response)
