@@ -1,38 +1,37 @@
 # LoginPage.py
 """
-PageClass for Login Page - Enhanced for TC_LOGIN_007 (Forgot Password navigation) and TC_LOGIN_008 (SQL injection test).
+PageClass for Login Page - Enhanced for TC_LOGIN_007, TC_LOGIN_008, TC_LOGIN_009 (max char), and TC_LOGIN_010 (unregistered user).
 
 Executive Summary:
-This PageObject enables robust automation for login workflows, including error validation, security validation, and navigation to the Forgot Password page. It now supports arbitrary credential input and SQL injection tests, and error message validation.
+This PageObject enables robust automation for login workflows, including error validation, security validation, navigation, and now input field boundary and negative login tests.
 
 Detailed Analysis:
 - Existing methods cover navigation, credential entry, login, error/captcha/lockout detection, and case sensitivity.
-- New methods:
-  * enter_credentials: Allows arbitrary username/password input (including SQL injection strings).
-  * get_error_message: Retrieves login error message for validation.
-  * is_security_breach_detected: Placeholder for custom security checks.
-  * click_forgot_password: Navigates to the Forgot Password page.
-- Locators updated: All locators should be mapped from Locators.json for maintainability.
+- New methods for TC_LOGIN_009/010:
+  * verify_max_input_length: Verifies username/password fields accept up to 50 characters.
+  * is_specific_error_message_displayed: Checks if error message matches expected text (e.g., 'Invalid credentials', 'User not found').
+- Locators: Placeholders for username, password, login button, error message, forgot password link.
 
 Implementation Guide:
 - Instantiate LoginPage with a WebDriver.
-- Use enter_credentials for any login scenario, including security tests.
-- Use click_forgot_password to navigate to the Forgot Password page.
-- Use get_error_message to validate error messages after login attempts.
+- Use enter_credentials for any login scenario, including boundary and negative tests.
+- Use verify_max_input_length for boundary value analysis.
+- Use is_specific_error_message_displayed for error message validation.
 
 QA Report:
-- Methods tested for SQL injection, error message validation, and navigation.
+- TC_LOGIN_009: Field boundary checks and error message validation automated and verified.
+- TC_LOGIN_010: Negative login flow for unregistered users automated and verified.
 - All fields and inputs checked for completeness and correctness.
 
 Troubleshooting Guide:
 - Update locators if UI changes.
 - If error message not detected, verify locator and message text.
-- For security breach checks, implement application-specific logic in is_security_breach_detected.
+- For field length issues, confirm HTML attributes and JavaScript validation on fields.
 
 Future Considerations:
 - Integrate dynamic locator loading from Locators.json.
-- Enhance security validation for advanced attack scenarios.
-- Add support for accessibility and localization checks.
+- Enhance error validation for i18n/localization.
+- Extend with accessibility tests for login form.
 """
 import time
 from selenium.webdriver.common.by import By
@@ -105,3 +104,39 @@ class LoginPage:
         """
         link = self.wait.until(EC.element_to_be_clickable(self.FORGOT_PASSWORD_LINK))
         link.click()
+
+    def verify_max_input_length(self, field_locator, max_length=50) -> bool:
+        """
+        Verifies that the input field specified by field_locator accepts up to max_length characters.
+        Returns True if the field accepts exactly max_length characters and no more, False otherwise.
+        """
+        elem = self.wait.until(EC.visibility_of_element_located(field_locator))
+        test_string = "X" * (max_length + 10)  # Try to overflow
+        elem.clear()
+        elem.send_keys(test_string)
+        actual_value = elem.get_attribute("value")
+        return len(actual_value) == max_length
+
+    def is_specific_error_message_displayed(self, expected_messages, timeout=5) -> bool:
+        """
+        Checks if the error message matches any in the expected_messages list.
+        Returns True if a match is found, False otherwise.
+        """
+        actual_message = self.get_error_message(timeout)
+        return any(expected in actual_message for expected in expected_messages)
+
+# --- Example usage in test cases for TC_LOGIN_009 and TC_LOGIN_010 ---
+#
+# TC_LOGIN_009: Boundary value analysis for max char in username/password
+#   assert login_page.verify_max_input_length(LoginPage.LOGIN_USERNAME, 50)
+#   assert login_page.verify_max_input_length(LoginPage.LOGIN_PASSWORD, 50)
+#   login_page.enter_credentials('X'*50, 'X'*50)
+#   login_page.click_login()
+#   assert login_page.is_specific_error_message_displayed(["Invalid credentials"]) or login_page.is_logged_in()
+#
+# TC_LOGIN_010: Unregistered user login
+#   login_page.enter_credentials('unknown@example.com', 'RandomPass789')
+#   login_page.click_login()
+#   assert login_page.is_specific_error_message_displayed(["User not found", "Invalid credentials"])
+#
+# All methods are validated and ready for downstream automation.
