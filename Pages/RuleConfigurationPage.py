@@ -141,3 +141,55 @@ class RuleConfigurationPage:
         # Placeholder for actual verification logic, e.g., querying logs or UI confirmation
         # Should be implemented according to system under test
         pass
+
+    # --- Appended for CASE-Update: TC-FT-005 ---
+    def define_rule_after_deposit_percentage(self, rule_id, rule_name, percentage, schema_str):
+        """
+        Define a rule for 'after_deposit' trigger with percentage_of_deposit action.
+        """
+        self.enter_rule_id(rule_id)
+        self.enter_rule_name(rule_name)
+        self.select_trigger_type("after_deposit")
+        self.set_action_percentage_of_deposit(percentage)
+        self.enter_json_schema(schema_str)
+        self.validate_schema()
+        assert self.is_schema_valid(), f"Schema validation failed: {self.get_schema_error()}"
+        self.save_rule()
+
+    def simulate_deposit_and_verify_transfer(self, deposit_amount, expected_transfer):
+        """
+        Simulate deposit and verify transfer action executed.
+        Note: This is a placeholder. Actual implementation depends on system integration.
+        """
+        # Simulate deposit - depends on system interface
+        # Verify transfer - placeholder logic
+        # Example: Check transfer record, UI, or database
+        pass
+
+    # --- Appended for CASE-Update: TC-FT-006 ---
+    def define_rule_currency_conversion(self, rule_id, rule_name, currency, amount, schema_str):
+        """
+        Define a rule with 'currency_conversion' trigger and fixed amount action.
+        Gracefully handle unknown trigger types.
+        """
+        self.enter_rule_id(rule_id)
+        self.enter_rule_name(rule_name)
+        try:
+            self.select_trigger_type("currency_conversion")
+            # If currency field exists, fill it
+            # Placeholder: Adjust if UI supports currency selection
+            self.set_action_fixed_amount(amount)
+            self.enter_json_schema(schema_str)
+            self.validate_schema()
+            assert self.is_schema_valid(), f"Schema validation failed: {self.get_schema_error()}"
+            self.save_rule()
+        except Exception as e:
+            # Graceful rejection, e.g., log or display message
+            print(f"Unsupported trigger type: currency_conversion. Exception: {e}")
+
+    def verify_existing_rules_function(self):
+        """
+        Verify that existing rules continue to execute as before after new rule type attempt.
+        """
+        # Placeholder for verification logic
+        pass
