@@ -74,5 +74,41 @@ class TestRuleConfiguration(unittest.TestCase):
         self.assertIsNotNone(error_message, "System should reject rule with SQL injection.")
         self.assertIn("error", error_message.lower(), "Error message should indicate rejection.")
 
+    # --- TC-FT-009 ---
+    def test_create_and_store_rule_specific_date_TC_FT_009(self):
+        """
+        TC-FT-009: Create and store a valid rule with specific_date trigger and fixed_amount action, empty conditions.
+        Then retrieve the rule from backend and verify it matches the original input.
+        """
+        driver = self.driver if hasattr(self, 'driver') else None
+        rule_page = RuleConfigurationPage(driver)
+        rule_data = {
+            "trigger": {"type": "specific_date", "date": "2024-07-01T10:00:00Z"},
+            "action": {"type": "fixed_amount", "amount": 100},
+            "conditions": []
+        }
+        creation_result = rule_page.create_and_store_rule(rule_data)
+        self.assertTrue(creation_result, "Rule should be created and stored successfully.")
+        retrieval_result = rule_page.retrieve_rule(rule_data)
+        self.assertTrue(retrieval_result, "Retrieved rule should match the original input.")
+
+    # --- TC-FT-010 ---
+    def test_define_and_trigger_rule_after_deposit_TC_FT_010(self):
+        """
+        TC-FT-010: Define a rule with after_deposit trigger, fixed_amount action, empty conditions.
+        Then trigger the rule after deposit of 1000 and verify transfer execution.
+        """
+        driver = self.driver if hasattr(self, 'driver') else None
+        rule_page = RuleConfigurationPage(driver)
+        rule_data = {
+            "trigger": {"type": "after_deposit"},
+            "action": {"type": "fixed_amount", "amount": 100},
+            "conditions": []
+        }
+        definition_result = rule_page.define_rule_empty_conditions(rule_data)
+        self.assertTrue(definition_result, "Rule with empty conditions should be accepted.")
+        transfer_result = rule_page.trigger_rule_after_deposit(1000)
+        self.assertTrue(transfer_result, "Transfer should be executed without checking any conditions.")
+
 if __name__ == '__main__':
     unittest.main()
