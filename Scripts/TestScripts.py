@@ -38,5 +38,5 @@ class TestRuleConfiguration(unittest.TestCase):
         TC_SCRUM158_07: Create a rule with only required fields (manual trigger, amount==1 condition, transfer action to account G with amount 1) and verify rule creation.
         Acceptance criteria: rule is accepted and created successfully.
         """
-        result = self.rule_page.create_minimal_rule_and_verify()
+        result = self.rule_page.create_rule_TC_SCRUM158_07()
         self.assertTrue(result, "Rule creation with minimal required fields failed.")
