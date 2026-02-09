@@ -39,7 +39,6 @@ class TestRuleConfiguration:
         3. Retrieve the created rule from the database.
         4. Validate the rule matches the submitted schema.
         """
-        # Example: Enter rule name (simulate UI interaction, API and DB checks would be in integration tests)
         self.rule_config_page.enter_rule_name('TestRule_AllTypes')
         self.rule_config_page.click_save()
         # Add assertions and API/DB calls as appropriate for your environment
@@ -60,3 +59,39 @@ class TestRuleConfiguration:
         # Add assertions and API/DB calls as appropriate for your environment
         # This is a UI-level simulation
         # assert rule_evaluation == expected_result
+
+    def test_TC_SCRUM158_05_invalid_trigger_schema(self):
+        """
+        Test Case TC_SCRUM158_05
+        Steps:
+        1. Prepare a rule schema with an invalid trigger value.
+        2. Validate the schema using the UI.
+        3. Submit the schema via API.
+        4. Assert API returns 400 Bad Request with error about invalid value.
+        """
+        api_url = "http://localhost:8000/rules"
+        headers = {"Content-Type": "application/json"}
+        schema = self.rule_config_page.prepare_invalid_trigger_schema()
+        is_valid, error_msg = self.rule_config_page.validate_rule_schema(str(schema))
+        assert not is_valid, f"Schema should be invalid but validation passed. Error: {error_msg}"
+        status_code, response = self.rule_config_page.submit_rule_schema_api(schema, api_url, headers)
+        assert status_code == 400, f"API should return 400 Bad Request, got {status_code}. Response: {response}"
+        assert 'invalid value' in str(response), "Expected error about invalid value in response."
+
+    def test_TC_SCRUM158_06_condition_missing_params_schema(self):
+        """
+        Test Case TC_SCRUM158_06
+        Steps:
+        1. Prepare a rule schema with a condition missing required parameters.
+        2. Validate the schema using the UI.
+        3. Submit the schema via API.
+        4. Assert API returns 400 Bad Request with error about incomplete condition.
+        """
+        api_url = "http://localhost:8000/rules"
+        headers = {"Content-Type": "application/json"}
+        schema = self.rule_config_page.prepare_condition_missing_params_schema()
+        is_valid, error_msg = self.rule_config_page.validate_rule_schema(str(schema))
+        assert not is_valid, f"Schema should be invalid but validation passed. Error: {error_msg}"
+        status_code, response = self.rule_config_page.submit_rule_schema_api(schema, api_url, headers)
+        assert status_code == 400, f"API should return 400 Bad Request, got {status_code}. Response: {response}"
+        assert 'incomplete condition' in str(response), "Expected error about incomplete condition in response."
