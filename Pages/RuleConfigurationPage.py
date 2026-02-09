@@ -4,7 +4,7 @@ PageClass for Rule Configuration Page.
 
 This class provides methods to automate the creation, retrieval, and triggering of rules based on the UI elements defined in Locators.json.
 
-CASE-Update: Appended new methods for test cases TC-FT-009 and TC-FT-010, without altering existing logic.
+CASE-Update: Appended new methods for test cases TC_SCRUM158_01 and TC_SCRUM158_02, without altering existing logic.
 
 Documentation:
 - Each method includes docstrings describing parameters and expected behavior.
