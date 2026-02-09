@@ -145,3 +145,49 @@ class TestRuleConfiguration:
         self.rule_page.validate_schema()
         self.rule_page.submit_rule()
         assert self.rule_page.verify_error("trigger"), "Schema error for missing trigger field was not returned."
+
+    def test_TC_SCRUM158_05_unsupported_trigger_type_error(self):
+        """
+        TC_SCRUM158_05: Prepare a schema with unsupported trigger type, submit, and verify error message.
+        """
+        schema = {
+            "trigger": {"type": "unsupported_type"},
+            "conditions": [{"type": "amount", "operator": "<", "value": 10}],
+            "actions": [{"type": "transfer", "account": "E", "amount": 10}]
+        }
+        result = self.rule_page.submit_unsupported_trigger_schema_and_verify_error(schema)
+        assert result is True, "Error message for unsupported trigger type was not returned."
+
+    def test_TC_SCRUM158_06_max_conditions_actions(self):
+        """
+        TC_SCRUM158_06: Prepare a schema with maximum allowed (10) conditions and actions, submit, and verify successful storage.
+        """
+        schema = {
+            "trigger": {"type": "manual"},
+            "conditions": [
+                {"type": "amount", "operator": "==", "value": 1},
+                {"type": "amount", "operator": "==", "value": 2},
+                {"type": "amount", "operator": "==", "value": 3},
+                {"type": "amount", "operator": "==", "value": 4},
+                {"type": "amount", "operator": "==", "value": 5},
+                {"type": "amount", "operator": "==", "value": 6},
+                {"type": "amount", "operator": "==", "value": 7},
+                {"type": "amount", "operator": "==", "value": 8},
+                {"type": "amount", "operator": "==", "value": 9},
+                {"type": "amount", "operator": "==", "value": 10}
+            ],
+            "actions": [
+                {"type": "transfer", "account": "F1", "amount": 1},
+                {"type": "transfer", "account": "F2", "amount": 2},
+                {"type": "transfer", "account": "F3", "amount": 3},
+                {"type": "transfer", "account": "F4", "amount": 4},
+                {"type": "transfer", "account": "F5", "amount": 5},
+                {"type": "transfer", "account": "F6", "amount": 6},
+                {"type": "transfer", "account": "F7", "amount": 7},
+                {"type": "transfer", "account": "F8", "amount": 8},
+                {"type": "transfer", "account": "F9", "amount": 9},
+                {"type": "transfer", "account": "F10", "amount": 10}
+            ]
+        }
+        result = self.rule_page.submit_max_conditions_actions_schema_and_verify_storage(schema)
+        assert result is True, "Rule with maximum allowed conditions/actions was not accepted."
