@@ -1,212 +1,118 @@
-import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 
 class RuleConfigurationPage:
-    def __init__(self, driver, timeout=10):
+    def __init__(self, driver):
         self.driver = driver
-        self.wait = WebDriverWait(driver, timeout)
+        self.wait = WebDriverWait(driver, 10)
 
-    # --- Locators ---
-    rule_id_input = (By.ID, 'rule-id-field')
-    rule_name_input = (By.NAME, 'rule-name')
-    save_rule_button = (By.CSS_SELECTOR, "button[data-testid='save-rule-btn']")
-
-    trigger_type_dropdown = (By.ID, 'trigger-type-select')
-    date_picker = (By.CSS_SELECTOR, "input[type='date']")
-    recurring_interval_input = (By.ID, 'interval-value')
-    after_deposit_toggle = (By.ID, 'trigger-after-deposit')
-
-    add_condition_btn = (By.ID, 'add-condition-link')
-    condition_type_dropdown = (By.CSS_SELECTOR, 'select.condition-type')
-    balance_threshold_input = (By.CSS_SELECTOR, "input[name='balance-limit'")
-    transaction_source_dropdown = (By.ID, 'source-provider-select')
-    operator_dropdown = (By.CSS_SELECTOR, '.condition-operator-select')
-
-    action_type_dropdown = (By.ID, 'action-type-select')
-    transfer_amount_input = (By.NAME, 'fixed-amount')
-    percentage_input = (By.ID, 'deposit-percentage')
-    destination_account_input = (By.ID, 'target-account-id')
-
-    json_schema_editor = (By.CSS_SELECTOR, '.monaco-editor')
-    validate_schema_btn = (By.ID, 'btn-verify-json')
-    success_message = (By.CSS_SELECTOR, '.alert-success')
-    schema_error_message = (By.CSS_SELECTOR, '[data-testid="error-feedback-text"]')
-
-    # --- Page Actions ---
+    # --- Rule Form ---
     def enter_rule_id(self, rule_id):
-        elem = self.wait.until(EC.visibility_of_element_located(self.rule_id_input))
+        elem = self.wait.until(EC.visibility_of_element_located((By.ID, 'rule-id-field')))
         elem.clear()
         elem.send_keys(rule_id)
 
     def enter_rule_name(self, rule_name):
-        elem = self.wait.until(EC.visibility_of_element_located(self.rule_name_input))
+        elem = self.wait.until(EC.visibility_of_element_located((By.NAME, 'rule-name')))
         elem.clear()
         elem.send_keys(rule_name)
 
+    def save_rule(self):
+        btn = self.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-testid='save-rule-btn']")))
+        btn.click()
+
+    # --- Triggers ---
     def select_trigger_type(self, trigger_type):
-        dropdown = self.wait.until(EC.element_to_be_clickable(self.trigger_type_dropdown))
+        dropdown = self.wait.until(EC.element_to_be_clickable((By.ID, 'trigger-type-select')))
         dropdown.click()
         dropdown.send_keys(trigger_type)
         dropdown.send_keys(Keys.RETURN)
 
-    def set_specific_date_trigger(self, date_str):
-        self.select_trigger_type('specific_date')
-        date_input = self.wait.until(EC.visibility_of_element_located(self.date_picker))
-        date_input.clear()
-        date_input.send_keys(date_str)
+    def set_trigger_date(self, date_str):
+        date_picker = self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "input[type='date']")))
+        date_picker.clear()
+        date_picker.send_keys(date_str)
 
-    def set_recurring_trigger(self, interval):
-        self.select_trigger_type('recurring')
-        interval_input = self.wait.until(EC.visibility_of_element_located(self.recurring_interval_input))
+    def set_recurring_interval(self, interval):
+        interval_input = self.wait.until(EC.visibility_of_element_located((By.ID, 'interval-value')))
         interval_input.clear()
-        interval_input.send_keys(interval)
+        interval_input.send_keys(str(interval))
 
-    def set_after_deposit_trigger(self):
-        toggle = self.wait.until(EC.element_to_be_clickable(self.after_deposit_toggle))
+    def toggle_after_deposit(self):
+        toggle = self.wait.until(EC.element_to_be_clickable((By.ID, 'trigger-after-deposit')))
         toggle.click()
 
-    def add_condition(self, condition_type, operator=None, value=None, source=None):
-        add_btn = self.wait.until(EC.element_to_be_clickable(self.add_condition_btn))
-        add_btn.click()
-        type_dropdown = self.wait.until(EC.visibility_of_element_located(self.condition_type_dropdown))
-        type_dropdown.click()
-        type_dropdown.send_keys(condition_type)
-        type_dropdown.send_keys(Keys.RETURN)
-        if operator:
-            operator_dropdown = self.wait.until(EC.visibility_of_element_located(self.operator_dropdown))
-            operator_dropdown.click()
-            operator_dropdown.send_keys(operator)
-            operator_dropdown.send_keys(Keys.RETURN)
-        if value:
-            if condition_type == 'balance_threshold':
-                value_input = self.wait.until(EC.visibility_of_element_located(self.balance_threshold_input))
-                value_input.clear()
-                value_input.send_keys(str(value))
-        if source:
-            source_dropdown = self.wait.until(EC.visibility_of_element_located(self.transaction_source_dropdown))
-            source_dropdown.click()
-            source_dropdown.send_keys(source)
-            source_dropdown.send_keys(Keys.RETURN)
+    # --- Conditions ---
+    def add_condition(self):
+        btn = self.wait.until(EC.element_to_be_clickable((By.ID, 'add-condition-link')))
+        btn.click()
 
+    def select_condition_type(self, condition_type):
+        dropdown = self.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, 'select.condition-type')))
+        dropdown.click()
+        dropdown.send_keys(condition_type)
+        dropdown.send_keys(Keys.RETURN)
+
+    def enter_balance_threshold(self, threshold):
+        input_elem = self.wait.until(EC.visibility_of_element_located((By.NAME, 'balance-limit')))
+        input_elem.clear()
+        input_elem.send_keys(str(threshold))
+
+    def select_transaction_source(self, source):
+        dropdown = self.wait.until(EC.element_to_be_clickable((By.ID, 'source-provider-select')))
+        dropdown.click()
+        dropdown.send_keys(source)
+        dropdown.send_keys(Keys.RETURN)
+
+    def select_operator(self, operator):
+        dropdown = self.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, '.condition-operator-select')))
+        dropdown.click()
+        dropdown.send_keys(operator)
+        dropdown.send_keys(Keys.RETURN)
+
+    # --- Actions ---
     def select_action_type(self, action_type):
-        dropdown = self.wait.until(EC.element_to_be_clickable(self.action_type_dropdown))
+        dropdown = self.wait.until(EC.element_to_be_clickable((By.ID, 'action-type-select')))
         dropdown.click()
         dropdown.send_keys(action_type)
         dropdown.send_keys(Keys.RETURN)
 
-    def set_fixed_amount_action(self, amount, destination_account):
-        self.select_action_type('fixed_amount')
-        amount_input = self.wait.until(EC.visibility_of_element_located(self.transfer_amount_input))
-        amount_input.clear()
-        amount_input.send_keys(str(amount))
-        dest_input = self.wait.until(EC.visibility_of_element_located(self.destination_account_input))
-        dest_input.clear()
-        dest_input.send_keys(destination_account)
+    def enter_transfer_amount(self, amount):
+        input_elem = self.wait.until(EC.visibility_of_element_located((By.NAME, 'fixed-amount')))
+        input_elem.clear()
+        input_elem.send_keys(str(amount))
 
-    def set_percentage_of_deposit_action(self, percentage, destination_account):
-        self.select_action_type('percentage_of_deposit')
-        perc_input = self.wait.until(EC.visibility_of_element_located(self.percentage_input))
-        perc_input.clear()
-        perc_input.send_keys(str(percentage))
-        dest_input = self.wait.until(EC.visibility_of_element_located(self.destination_account_input))
-        dest_input.clear()
-        dest_input.send_keys(destination_account)
+    def enter_percentage(self, percentage):
+        input_elem = self.wait.until(EC.visibility_of_element_located((By.ID, 'deposit-percentage')))
+        input_elem.clear()
+        input_elem.send_keys(str(percentage))
 
-    def enter_json_rule(self, rule_json):
-        editor = self.wait.until(EC.visibility_of_element_located(self.json_schema_editor))
-        editor.click()
-        editor.clear()
-        editor.send_keys(rule_json)
+    def enter_destination_account(self, account_id):
+        input_elem = self.wait.until(EC.visibility_of_element_located((By.ID, 'target-account-id')))
+        input_elem.clear()
+        input_elem.send_keys(account_id)
 
-    def validate_rule_schema(self):
-        validate_btn = self.wait.until(EC.element_to_be_clickable(self.validate_schema_btn))
-        validate_btn.click()
+    # --- Validation ---
+    def validate_json_schema(self):
+        btn = self.wait.until(EC.element_to_be_clickable((By.ID, 'btn-verify-json')))
+        btn.click()
 
-    def is_success_message_displayed(self):
-        try:
-            self.wait.until(EC.visibility_of_element_located(self.success_message))
-            return True
-        except:
-            return False
+    def get_success_message(self):
+        msg = self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, '.alert-success')))
+        return msg.text
 
-    def is_schema_error_displayed(self):
-        try:
-            self.wait.until(EC.visibility_of_element_located(self.schema_error_message))
-            return True
-        except:
-            return False
+    def get_schema_error_message(self):
+        msg = self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "[data-testid='error-feedback-text']")))
+        return msg.text
 
-    def save_rule(self):
-        save_btn = self.wait.until(EC.element_to_be_clickable(self.save_rule_button))
-        save_btn.click()
+    # --- Backend Retrieval Stub (for test automation integration) ---
+    def retrieve_rule_from_backend(self, rule_id):
+        # Placeholder for backend API integration
+        # Implement API call or DB query to retrieve rule by rule_id
+        pass
 
-    # --- Composite Test Flows ---
-    def create_rule_with_specific_date_trigger(self, rule_id, rule_name, date_str, amount, destination_account, rule_json):
-        self.enter_rule_id(rule_id)
-        self.enter_rule_name(rule_name)
-        self.set_specific_date_trigger(date_str)
-        self.set_fixed_amount_action(amount, destination_account)
-        self.enter_json_rule(rule_json)
-        self.validate_rule_schema()
-        self.save_rule()
-
-    def create_rule_with_recurring_trigger(self, rule_id, rule_name, interval, percentage, destination_account, rule_json):
-        self.enter_rule_id(rule_id)
-        self.enter_rule_name(rule_name)
-        self.set_recurring_trigger(interval)
-        self.set_percentage_of_deposit_action(percentage, destination_account)
-        self.enter_json_rule(rule_json)
-        self.validate_rule_schema()
-        self.save_rule()
-
-    # --- ADDED FOR TC-FT-005 ---
-    def create_rule_after_deposit_percentage(self, rule_id, rule_name, percentage, destination_account, rule_json):
-        self.enter_rule_id(rule_id)
-        self.enter_rule_name(rule_name)
-        self.set_after_deposit_trigger()
-        self.set_percentage_of_deposit_action(percentage, destination_account)
-        self.enter_json_rule(rule_json)
-        self.validate_rule_schema()
-        self.save_rule()
-
-    def simulate_deposit_and_verify_transfer(self, deposit_amount, expected_transfer):
-        # This is a placeholder: actual implementation depends on deposit simulation and verification APIs
-        # e.g. interact with deposit form, submit, then check for transfer
-        print(f"Simulating deposit of {deposit_amount} units.")
-        print(f"Verifying transfer of {expected_transfer} units.")
-        # Would interact with UI or backend, then assert transfer
-
-    # --- ADDED FOR TC-FT-006 ---
-    def create_rule_with_currency_conversion(self, rule_id, rule_name, currency, amount, destination_account, rule_json):
-        self.enter_rule_id(rule_id)
-        self.enter_rule_name(rule_name)
-        self.select_trigger_type('currency_conversion')
-        # If currency field is present, interact with it
-        try:
-            currency_input = self.wait.until(EC.visibility_of_element_located((By.ID, 'currency-select')))
-            currency_input.clear()
-            currency_input.send_keys(currency)
-        except Exception:
-            print('Currency input not found, skipping.')
-        self.set_fixed_amount_action(amount, destination_account)
-        self.enter_json_rule(rule_json)
-        self.validate_rule_schema()
-        self.save_rule()
-
-    def verify_currency_conversion_rule_acceptance(self):
-        if self.is_success_message_displayed():
-            print('Rule accepted.')
-            return True
-        elif self.is_schema_error_displayed():
-            print('Rule gracefully rejected with error message.')
-            return False
-        else:
-            print('Unexpected outcome.')
-            return None
-
-    def verify_existing_rules_functionality(self):
-        # Placeholder: Would execute existing rule flows and verify outcome
-        print('Verifying existing rules execute as before.')
+    # --- Utility ---
+    def wait_for_rule_saved(self):
+        self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, '.alert-success')))
