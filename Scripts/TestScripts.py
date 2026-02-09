@@ -52,3 +52,28 @@ class TestRuleConfigurationNegativeCases:
         await self.rule_page.submit_rule()
         error_msg = await self.rule_page.get_error_message()
         assert error_msg == "Condition parameters missing", f"Expected 'Condition parameters missing', got '{error_msg}'"
+
+class TestRuleConfigurationPositiveCases:
+    def __init__(self, page):
+        self.page = page
+        self.rule_page = RuleConfigurationPage(page)
+
+    async def test_max_conditions_actions_schema(self):
+        """
+        TC_SCRUM158_07: Prepare schema with maximum supported conditions and actions (10 each), submit, validate persistence.
+        """
+        await self.rule_page.prepare_max_conditions_actions_schema()
+        await self.rule_page.submit_max_conditions_actions_schema()
+        # Assuming rule_id is available after submission
+        rule_id = 'MAX_COND_ACT_RULE'  # Replace with actual retrieval if needed
+        result = await self.rule_page.validate_max_conditions_actions_persistence(rule_id)
+        assert result, 'Rule did not persist all conditions/actions as expected.'
+
+    async def test_empty_conditions_actions_schema(self):
+        """
+        TC_SCRUM158_08: Prepare schema with empty conditions/actions, submit, validate response.
+        """
+        await self.rule_page.prepare_empty_conditions_actions_schema()
+        await self.rule_page.submit_empty_conditions_actions_schema()
+        success, message = await self.rule_page.validate_empty_conditions_actions_response()
+        assert success, f'Expected schema to be valid, got error: {message}'
