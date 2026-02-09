@@ -127,3 +127,53 @@ class TestRuleConfiguration:
         # Optionally, assert success message
         success_msg = self.rule_page.get_success_message()
         assert "success" in success_msg.lower(), f"Rule creation failed: {success_msg}"
+
+    def test_TC_SCRUM158_03_recurring_interval_trigger(self):
+        """
+        TC_SCRUM158_03: Create a schema with a recurring interval trigger (weekly), submit, and verify rule is scheduled for recurring evaluation.
+        """
+        rule_id = "SCRUM158_03"
+        rule_name = "Weekly Recurring Rule"
+        interval_value = "weekly"
+        condition_type = "amount"
+        operator = ">="
+        condition_value = 1000
+        action_type = "transfer"
+        account = "C"
+        amount = 1000
+        result = self.rule_page.create_recurring_rule(
+            rule_id=rule_id,
+            rule_name=rule_name,
+            interval_value=interval_value,
+            condition_type=condition_type,
+            operator=operator,
+            condition_value=condition_value,
+            action_type=action_type,
+            account=account,
+            amount=amount
+        )
+        assert result is True, "Rule was not accepted or scheduled for recurring evaluation."
+
+    def test_TC_SCRUM158_04_missing_trigger_field(self):
+        """
+        TC_SCRUM158_04: Prepare a schema missing the 'trigger' field, attempt to create rule, and assert schema is rejected with error indicating missing required field.
+        """
+        rule_id = "SCRUM158_04"
+        rule_name = "Missing Trigger Rule"
+        condition_type = "amount"
+        operator = "<"
+        condition_value = 50
+        action_type = "transfer"
+        account = "D"
+        amount = 50
+        error_msg = self.rule_page.create_rule_missing_trigger(
+            rule_id=rule_id,
+            rule_name=rule_name,
+            condition_type=condition_type,
+            operator=operator,
+            condition_value=condition_value,
+            action_type=action_type,
+            account=account,
+            amount=amount
+        )
+        assert error_msg is not None and ("missing" in error_msg.lower() or "required" in error_msg.lower()), f"Expected schema error for missing trigger field but got: {error_msg}"
