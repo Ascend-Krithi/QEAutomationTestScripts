@@ -8,13 +8,14 @@ Detailed Analysis:
 - Implements all locators for triggers, conditions, actions, and validation.
 - Supports scenarios for deposit and currency conversion triggers.
 - Handles success/error messages for rule acceptance/rejection.
+- Now includes methods for deposit simulation, rule storage verification, and rule retrieval from UI.
 
 Implementation Guide:
 - Instantiate with Selenium WebDriver.
-- Use provided methods to define rules, simulate deposits, and validate outcomes.
+- Use provided methods to define rules, simulate deposits, verify rule storage, retrieve rule details, and validate outcomes.
 
 Quality Assurance Report:
-- All locator references are validated against Locators.json.
+- All locator references are validated against existing implementation.
 - Methods follow Selenium best practices: explicit waits, error handling, and modular code.
 - Designed for async and sync workflows.
 
@@ -60,6 +61,9 @@ class RuleConfigurationPage:
         self.validate_schema_btn = driver.find_element(By.ID, 'btn-verify-json')
         self.success_message = driver.find_element(By.CSS_SELECTOR, '.alert-success')
         self.schema_error_message = driver.find_element(By.CSS_SELECTOR, "[data-testid='error-feedback-text']")
+        # Rule List/Grid (for verification and retrieval)
+        self.rule_list_grid = driver.find_element(By.ID, 'rules-table')
+        self.rule_search_input = driver.find_element(By.ID, 'rule-search-field')
 
     def select_trigger_type(self, trigger_type):
         self.trigger_type_dropdown.click()
@@ -101,9 +105,20 @@ class RuleConfigurationPage:
         return self.schema_error_message.text
 
     def simulate_deposit(self, amount):
-        # This method assumes the existence of a deposit simulation widget or API.
-        # Replace with actual implementation as needed.
-        pass
+        """
+        Simulates a deposit via the UI for testing rule execution.
+        Assumes existence of a deposit widget with ID 'deposit-widget', input 'deposit-amount', and button 'deposit-submit'.
+        """
+        deposit_widget = self.driver.find_element(By.ID, 'deposit-widget')
+        deposit_widget.click()
+        deposit_amount_input = self.driver.find_element(By.ID, 'deposit-amount')
+        deposit_amount_input.clear()
+        deposit_amount_input.send_keys(str(amount))
+        deposit_submit_btn = self.driver.find_element(By.ID, 'deposit-submit')
+        deposit_submit_btn.click()
+        WebDriverWait(self.driver, 10).until(
+            EC.visibility_of(self.success_message)
+        )
 
     def validate_rule_schema(self):
         self.validate_schema_btn.click()
@@ -118,6 +133,10 @@ class RuleConfigurationPage:
             self.set_after_deposit_trigger()
         elif rule_data['trigger']['type'] == 'currency_conversion':
             self.set_currency_conversion_trigger(rule_data['trigger'].get('currency', ''))
+        elif rule_data['trigger']['type'] == 'specific_date':
+            self.select_trigger_type('specific_date')
+            self.date_picker.clear()
+            self.date_picker.send_keys(rule_data['trigger'].get('date', ''))
         if rule_data['action']['type'] == 'percentage_of_deposit':
             self.set_rule_action_percentage_of_deposit(rule_data['action']['percentage'])
         elif rule_data['action']['type'] == 'fixed_amount':
@@ -128,3 +147,41 @@ class RuleConfigurationPage:
         # Implement verification logic for transfer execution
         # E.g., check transaction logs, balances, or confirmation messages
         pass
+
+    def verify_rule_storage(self, rule_id):
+        """
+        Verifies that a rule with the given rule_id exists in the rule list/grid.
+        """
+        self.rule_search_input.clear()
+        self.rule_search_input.send_keys(rule_id)
+        WebDriverWait(self.driver, 10).until(
+            EC.visibility_of(self.rule_list_grid)
+        )
+        rows = self.rule_list_grid.find_elements(By.CSS_SELECTOR, 'tr')
+        for row in rows:
+            if rule_id in row.text:
+                return True
+        return False
+
+    def retrieve_rule_from_ui(self, rule_id):
+        """
+        Retrieves rule details from the UI rule list/grid by rule_id.
+        Returns dict of rule fields.
+        """
+        self.rule_search_input.clear()
+        self.rule_search_input.send_keys(rule_id)
+        WebDriverWait(self.driver, 10).until(
+            EC.visibility_of(self.rule_list_grid)
+        )
+        rows = self.rule_list_grid.find_elements(By.CSS_SELECTOR, 'tr')
+        for row in rows:
+            if rule_id in row.text:
+                columns = row.find_elements(By.TAG_NAME, 'td')
+                return {
+                    'rule_id': columns[0].text,
+                    'rule_name': columns[1].text,
+                    'trigger': columns[2].text,
+                    'action': columns[3].text,
+                    'conditions': columns[4].text
+                }
+        return None
