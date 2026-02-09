@@ -101,3 +101,31 @@ class TestLogin(unittest.TestCase):
         self.assertFalse(result['success'], "User should not be logged in when password is missing.")
         self.assertTrue(result['password_required'], "'Password required' error should be displayed.")
         self.assertEqual(result['error_message'], "Password required", "Error message should be 'Password required'.")
+
+    def test_TC_LOGIN_002_invalid_credentials(self):
+        """
+        TC_LOGIN_002: Enter invalid credentials and verify error message
+        Steps:
+        1. Navigate to login page
+        2. Enter invalid email/username or password (wronguser@example.com / WrongPassword)
+        3. Click login
+        4. Verify error message displayed for invalid credentials
+        """
+        self.login_page.login_with_credentials("wronguser@example.com", "WrongPassword")
+        error_message = self.login_page.get_error_message()
+        self.assertIsNotNone(error_message, "Error message should be displayed for invalid credentials.")
+        self.assertIn("Invalid credentials", error_message, "Error message should indicate invalid credentials.")
+
+    def test_TC_LOGIN_003_empty_fields(self):
+        """
+        TC_LOGIN_003: Leave fields empty and verify error message
+        Steps:
+        1. Navigate to login page
+        2. Leave email/username and password fields empty ('', '')
+        3. Click login
+        4. Verify error or validation message for empty fields is displayed
+        """
+        email_error = self.login_page.validate_missing_email_error("")
+        password_error = self.login_page.validate_missing_password_error("")
+        self.assertTrue(email_error, "Missing email error should be displayed when email is empty.")
+        self.assertTrue(password_error, "Missing password error should be displayed when password is empty.")
