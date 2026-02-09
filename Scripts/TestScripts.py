@@ -73,3 +73,29 @@ class TestLogin(unittest.TestCase):
         result = self.login_page.login_and_verify("wronguser@example.com", "WrongPassword")
         self.assertFalse(result['success'], "User should not be logged in with invalid credentials.")
         self.assertNotEqual(result['error_message'], "", "Error message should be displayed for invalid login.")
+
+    def test_TC_Login_03_empty_email(self):
+        """
+        TC_Login_03: Empty email with valid password.
+        Steps:
+        1. Navigate to login page
+        2. Leave email field empty, enter valid password
+        3. Click login
+        4. Verify 'Email required' error displayed, user not logged in
+        """
+        result = self.login_page.login_and_verify("", "ValidPassword123")
+        self.assertFalse(result['success'], "User should not be logged in when email is empty.")
+        self.assertTrue(result['email_required'], "'Email required' error should be displayed.")
+
+    def test_TC_Login_04_empty_password(self):
+        """
+        TC_Login_04: Valid email with empty password.
+        Steps:
+        1. Navigate to login page
+        2. Enter valid email, leave password empty
+        3. Click login
+        4. Verify 'Password required' error displayed, user not logged in
+        """
+        result = self.login_page.login_and_verify("user@example.com", "")
+        self.assertFalse(result['success'], "User should not be logged in when password is empty.")
+        self.assertTrue(result['password_required'], "'Password required' error should be displayed.")
