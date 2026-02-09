@@ -1,3 +1,4 @@
+
 import selenium.webdriver as webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -80,34 +81,22 @@ class TestRuleManagement:
         error_msg = await self.rule_page.get_error_message()
         assert 'unsupported action type' in error_msg.lower(), 'Expected error for unsupported action type'
 
+    # TC-FT-007: Batch rule upload and evaluation
     async def test_batch_rule_upload_and_evaluation_TC_FT_007(self):
-        """
-        TC-FT-007: Validate batch rule upload and evaluation.
-        """
-        await self.rule_page.navigate_to_rule_management()
-        # Path to batch rules JSON (should be present on the test runner machine)
-        batch_json_path = '/tmp/batch_rules.json'  # Update path as appropriate for your environment
-        self.rule_page.upload_rules_batch(batch_json_path)
+        # Step 1: Upload batch of 10,000 valid rules
+        batch_file_path = 'TestData/rules_batch_10000.json'  # Assume test data file exists
+        self.rule_page.upload_rules_batch(batch_file_path)
+        # Step 2: Validate batch upload count
+        assert self.rule_page.validate_batch_upload(10000), 'Expected 10,000 rules uploaded.'
+        # Step 3: Trigger evaluation for all rules
         self.rule_page.evaluate_all_rules()
-        # Optionally, verify that rules are present and evaluated
-        rules_text = self.rule_page.verify_existing_rules()
-        assert 'batch rule' in rules_text.lower(), 'Batch rules should be uploaded and listed.'
+        # Step 4: Check evaluation status
+        status = self.rule_page.get_evaluation_status()
+        assert status.get('passed', 0) >= 9990, 'Expected at least 9990 rules passed.'
+        assert status.get('failed', 0) <= 10, 'Expected no more than 10 rules failed.'
 
-    async def test_sql_injection_rejection_TC_FT_008(self):
-        """
-        TC-FT-008: Ensure SQL injection in rule submission is rejected.
-        """
-        await self.rule_page.navigate_to_rule_management()
-        sql_injection_rule = {
-            'type': 'transfer',
-            'trigger': {'type': 'deposit'},
-            'conditions': [
-                {'field': 'balance', 'operator': '>=', 'value': "1000; DROP TABLE rules;--"}
-            ],
-            'action': {'amount': 100}
-        }
-        self.rule_page.submit_rule_with_sql_injection(sql_injection_rule)
-        rejection_msg = self.rule_page.get_sql_injection_rejection_message()
-        assert (
-            'sql injection' in rejection_msg.lower() or 'invalid input' in rejection_msg.lower() or 'rejected' in rejection_msg.lower()
-        ), f'Expected SQL injection to be rejected, got: {rejection_msg}'
+    # TC-FT-008: SQL injection rejection
+    async def test_sql_injection_rule_rejection_TC_FT_008(self):
+        # Step 1: Submit rule with SQL injection in field value
+        malicious_rule = '{"trigger": {"type": "specific_date", "date": "2024-07-01T10:00:00Z"}, "action": {"type": "fixed_amount", "amount": 100}, "conditions": [{"type": "balance_threshold", "value": "1000; DROP TABLE users;--"}]}'
+        assert self.rule_page.check_sql_injection_rejection(malicious_rule), 'Expected SQL injection rule to be rejected.'
