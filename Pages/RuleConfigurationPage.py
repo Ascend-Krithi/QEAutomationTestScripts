@@ -105,3 +105,68 @@ class RuleConfigurationPage:
             EC.visibility_of_element_located(self.schema_error_message)
         )
         return error_elem.text
+
+    # --- New methods for TC_SCRUM158_03 and TC_SCRUM158_04 ---
+
+    def set_recurring_interval_trigger(self, interval_value):
+        """
+        Selects 'Recurring Interval' in the trigger type dropdown and sets the interval value.
+        """
+        trigger_dropdown = WebDriverWait(self.driver, 10).until(
+            EC.element_to_be_clickable(self.trigger_type_dropdown)
+        )
+        trigger_dropdown.click()
+        # Assuming the dropdown opens and 'Recurring Interval' is selectable by visible text
+        recurring_option = WebDriverWait(self.driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//option[contains(text(),'Recurring Interval')]")
+        )
+        recurring_option.click()
+        interval_input = WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_element_located(self.recurring_interval_input)
+        )
+        interval_input.clear()
+        interval_input.send_keys(str(interval_value))
+
+    def verify_rule_scheduling_success(self):
+        """
+        Waits for and returns the success message after scheduling a rule.
+        """
+        success_elem = WebDriverWait(self.driver, 10).until(
+            EC.visibility_of_element_located(self.success_message)
+        )
+        return success_elem.text
+
+    def submit_schema_missing_trigger(self, schema_json):
+        """
+        Submits a rule schema missing the 'trigger' field and returns the error message.
+        """
+        self.enter_rule_schema(schema_json)
+        self.validate_schema()
+        error_msg = self.get_rule_error_message()
+        return error_msg
+
+    def create_and_verify_recurring_interval_rule(self, rule_schema, interval_value):
+        """
+        Composite method for TC_SCRUM158_03:
+        - Sets recurring interval trigger.
+        - Enters rule schema.
+        - Validates and saves rule.
+        - Returns success message.
+        """
+        self.set_recurring_interval_trigger(interval_value)
+        self.enter_rule_schema(rule_schema)
+        if not self.validate_schema():
+            return None
+        self.save_rule()
+        return self.verify_rule_scheduling_success()
+
+    def verify_error_for_missing_trigger(self, rule_schema):
+        """
+        Composite method for TC_SCRUM158_04:
+        - Enters schema missing 'trigger'.
+        - Validates schema.
+        - Returns error message.
+        """
+        self.enter_rule_schema(rule_schema)
+        self.validate_schema()
+        return self.get_rule_error_message()
