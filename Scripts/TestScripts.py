@@ -51,3 +51,31 @@ class TestLoginFunctionality:
         assert login_page.verify_login_page_displayed(), "Login page is not displayed."
         error_message = login_page.login_with_empty_password("user@example.com")
         assert error_message == "Password required", "Error message 'Password required' was not displayed."
+
+    @pytest.mark.asyncio
+    async def test_TC_LOGIN_007_forgot_password_flow(self):
+        """
+        Implements TC_LOGIN_007:
+        1. Navigate to the login page.
+        2. Click the 'Forgot Password' link.
+        3. Verify presence of password recovery form.
+        """
+        login_page = LoginPage(self.driver)
+        login_page.navigate_to_login_page("https://example.com/login")
+        login_page.click_forgot_password()
+        assert login_page.verify_password_recovery_form(), "Password recovery form is not displayed."
+
+    @pytest.mark.asyncio
+    async def test_TC_LOGIN_008_sql_injection_login(self):
+        """
+        Implements TC_LOGIN_008:
+        1. Navigate to the login page.
+        2. Enter SQL injection string in email and password fields.
+        3. Click login button and verify error message 'Invalid credentials'.
+        """
+        login_page = LoginPage(self.driver)
+        login_page.navigate_to_login_page("https://example.com/login")
+        sql_email = "' OR 1=1;--"
+        sql_password = "' OR 1=1;--"
+        login_page.sql_injection_login_test(sql_email, sql_password)
+        # Error assertion is inside sql_injection_login_test
