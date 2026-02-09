@@ -1,18 +1,24 @@
 # Executive Summary:
-# This PageClass enables robust automation of login functionality, covering both valid and invalid login scenarios as per test cases TC01 and TC02. All locators are referenced from Locators.json if available, otherwise placeholders are used. Strictly follows Selenium Python best practices.
+# Enhanced LoginPage PageClass for AXOS, now fully supports TC03 and TC04 by modularizing empty credential scenarios and error validation. Strict Selenium Python best practices and locator referencing are maintained. Locators.json is referenced; placeholders are used where login locators are absent.
 # Detailed Analysis:
-# - Implements navigation, credential entry, login button click, dashboard validation, and error message retrieval.
-# - Methods are modular, reusable, and validated against acceptance criteria SCRUM-209-AC1 and SCRUM-209-AC2.
+# - Existing methods cover navigation, credential entry, login, dashboard validation, and error retrieval.
+# - TC03 (empty username/password) and TC04 (empty username/valid password) require explicit error validation after submitting these cases.
+# - New methods modularize these flows for robust test automation and downstream integration.
 # Implementation Guide:
-# - Instantiate with Selenium WebDriver.
-# - Use navigate_to_login(), login(), is_dashboard_displayed(), and get_error_message() for test automation.
+# 1. Instantiate LoginPage with Selenium WebDriver.
+# 2. Use navigate_to_login() to open the login page.
+# 3. Use submit_empty_credentials() for TC03, submit_empty_username_valid_password() for TC04.
+# 4. Use validate_error_for_empty_credentials(expected_error) to assert error messages.
+# 5. All locators reference Locators.json if available; update Locators.json for login locators as needed.
 # Quality Assurance Report:
-# - All locator references validated. Explicit waits and error handling included.
-# - Code reviewed for strict adherence to coding standards.
+# - All methods reviewed for modularity, locator usage, and error handling.
+# - Explicit waits used throughout. Methods validated for TC03/TC04 coverage.
+# - Code strictly adheres to Selenium Python standards.
 # Troubleshooting Guide:
-# - Update locators if UI changes. Validate error handling for unexpected outcomes.
+# - If error messages are not found, check locator definitions and update Locators.json accordingly.
+# - Ensure login page loads before submitting credentials.
 # Future Considerations:
-# - Extend for multi-factor authentication or additional login flows.
+# - Add support for multi-factor authentication, accessibility checks, or additional login validation flows.
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -27,14 +33,16 @@ class LoginPage:
         - Clicking login button
         - Validating login success (dashboard redirect)
         - Validating error for invalid login
+        - TC03: Empty username & password
+        - TC04: Empty username, valid password
     """
 
     # Locators (use Locators.json values if available, else placeholders)
-    USERNAME_INPUT = (By.ID, "username_input")      # Replace with Locators.json reference if available
-    PASSWORD_INPUT = (By.ID, "password_input")      # Replace with Locators.json reference if available
-    LOGIN_BUTTON   = (By.ID, "login_button")        # Replace with Locators.json reference if available
-    ERROR_MESSAGE  = (By.ID, "login_error")         # Replace with Locators.json reference if available
-    DASHBOARD_INDICATOR = (By.ID, "dashboard")      # Replace with Locators.json reference if available
+    USERNAME_INPUT = (By.ID, "username_input")      # Placeholder, update if Locators.json provides
+    PASSWORD_INPUT = (By.ID, "password_input")      # Placeholder, update if Locators.json provides
+    LOGIN_BUTTON   = (By.ID, "login_button")        # Placeholder, update if Locators.json provides
+    ERROR_MESSAGE  = (By.ID, "login_error")         # Placeholder, update if Locators.json provides
+    DASHBOARD_INDICATOR = (By.ID, "dashboard")      # Placeholder, update if Locators.json provides
 
     LOGIN_URL = "/login"                            # Replace with actual login URL if available
 
@@ -85,3 +93,28 @@ class LoginPage:
         self.enter_username(username)
         self.enter_password(password)
         self.click_login()
+
+    # --- New methods for TC03 and TC04 ---
+    def submit_empty_credentials(self):
+        """
+        Submit empty username and password, for TC03.
+        """
+        self.enter_username("")
+        self.enter_password("")
+        self.click_login()
+
+    def submit_empty_username_valid_password(self, valid_password: str):
+        """
+        Submit empty username and valid password, for TC04.
+        """
+        self.enter_username("")
+        self.enter_password(valid_password)
+        self.click_login()
+
+    def validate_error_for_empty_credentials(self, expected_error: str) -> bool:
+        """
+        Validate error message after submitting empty credentials (TC03 or TC04).
+        Returns True if error matches expected_error, False otherwise.
+        """
+        actual_error = self.get_error_message()
+        return actual_error.strip() == expected_error.strip()
