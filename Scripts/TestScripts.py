@@ -67,3 +67,33 @@ class TestRuleConfiguration:
         trigger_result = await rule_management.trigger_rule(trigger_payload)
         assert trigger_result["status"] == "executed", f"Rule trigger failed or did not execute: {trigger_result}"
         assert trigger_result["transfer_amount"] == 100, f"Transfer amount mismatch: {trigger_result}"
+
+    def test_schema_with_unsupported_trigger_TC_SCRUM158_05(self):
+        """
+        TC_SCRUM158_05:
+        1. Prepare a schema with unsupported trigger type (e.g., 'unsupported_type').
+           Test Data: {"trigger":{"type":"unsupported_type"},"conditions":[{"type":"amount","operator":"<","value":10}],"actions":[{"type":"transfer","account":"E","amount":10}]}
+           Expected: Schema is rejected with error about unsupported type.
+        2. Submit the schema and observe error response.
+           Expected: Rule is not created; error message returned.
+        """
+        driver = ... # Setup Selenium WebDriver instance
+        page = RuleConfigurationPage(driver)
+        schema = '{"trigger":{"type":"unsupported_type"},"conditions":[{"type":"amount","operator":"<","value":10}],"actions":[{"type":"transfer","account":"E","amount":10}]}'
+        error_message = page.prepare_schema_with_unsupported_trigger(schema)
+        assert "unsupported type" in error_message.lower(), f"Expected error about unsupported type, got: {error_message}"
+
+    def test_schema_with_max_conditions_actions_TC_SCRUM158_06(self):
+        """
+        TC_SCRUM158_06:
+        1. Prepare a schema with maximum allowed (e.g., 10) conditions and actions.
+           Test Data: {"trigger":{"type":"manual"},"conditions":[{"type":"amount","operator":"==","value":1},{"type":"amount","operator":"==","value":2},{"type":"amount","operator":"==","value":3},{"type":"amount","operator":"==","value":4},{"type":"amount","operator":"==","value":5},{"type":"amount","operator":"==","value":6},{"type":"amount","operator":"==","value":7},{"type":"amount","operator":"==","value":8},{"type":"amount","operator":"==","value":9},{"type":"amount","operator":"==","value":10}],"actions":[{"type":"transfer","account":"F1","amount":1},{"type":"transfer","account":"F2","amount":2},{"type":"transfer","account":"F3","amount":3},{"type":"transfer","account":"F4","amount":4},{"type":"transfer","account":"F5","amount":5},{"type":"transfer","account":"F6","amount":6},{"type":"transfer","account":"F7","amount":7},{"type":"transfer","account":"F8","amount":8},{"type":"transfer","account":"F9","amount":9},{"type":"transfer","account":"F10","amount":10}]}
+           Expected: Rule is accepted and all conditions/actions are stored.
+        2. Submit the schema and verify storage of all conditions/actions.
+           Expected: Rule contains maximum allowed items.
+        """
+        driver = ... # Setup Selenium WebDriver instance
+        page = RuleConfigurationPage(driver)
+        schema = '{"trigger":{"type":"manual"},"conditions":[{"type":"amount","operator":"==","value":1},{"type":"amount","operator":"==","value":2},{"type":"amount","operator":"==","value":3},{"type":"amount","operator":"==","value":4},{"type":"amount","operator":"==","value":5},{"type":"amount","operator":"==","value":6},{"type":"amount","operator":"==","value":7},{"type":"amount","operator":"==","value":8},{"type":"amount","operator":"==","value":9},{"type":"amount","operator":"==","value":10}],"actions":[{"type":"transfer","account":"F1","amount":1},{"type":"transfer","account":"F2","amount":2},{"type":"transfer","account":"F3","amount":3},{"type":"transfer","account":"F4","amount":4},{"type":"transfer","account":"F5","amount":5},{"type":"transfer","account":"F6","amount":6},{"type":"transfer","account":"F7","amount":7},{"type":"transfer","account":"F8","amount":8},{"type":"transfer","account":"F9","amount":9},{"type":"transfer","account":"F10","amount":10}]}'
+        success_message = page.prepare_schema_with_max_conditions_actions(schema)
+        assert "success" in success_message.lower(), f"Expected success message, got: {success_message}"
