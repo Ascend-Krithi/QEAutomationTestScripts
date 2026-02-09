@@ -1,67 +1,128 @@
-# RuleConfigurationPage.py
+# imports
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.remote.webdriver import WebDriver
+import json
 
 class RuleConfigurationPage:
-    def __init__(self, driver):
+    """
+    Page Object for Rule Configuration Page.
+    Covers: triggers, conditions, actions, validation, and rule form.
+    Locators loaded from Locators.json.
+    """
+
+    def __init__(self, driver: WebDriver, locators: dict):
         self.driver = driver
-        self.wait = WebDriverWait(driver, 10)
-        # Locators loaded from Locators.json (assumed structure)
-        self.locators = {
-            'ruleForm': {'by': By.ID, 'value': 'ruleForm'},
-            'triggers': {'by': By.CSS_SELECTOR, 'value': '[data-testid="triggers-section"]'},
-            'conditions': {'by': By.CSS_SELECTOR, 'value': '[data-testid="conditions-section"]'},
-            'actions': {'by': By.CSS_SELECTOR, 'value': '[data-testid="actions-section"]'},
-            'validation': {'by': By.CSS_SELECTOR, 'value': '[data-testid="validation-message"]'}
-        }
+        self.locators = locators["RuleConfigurationPage"]
 
-    def open_rule_form(self):
-        return self.wait.until(EC.visibility_of_element_located((self.locators['ruleForm']['by'], self.locators['ruleForm']['value'])))
+    # --- Rule Form ---
+    def enter_rule_id(self, rule_id: str):
+        elem = self.driver.find_element(By.ID, self.locators["ruleForm"]["ruleIdInput"].split('=')[1])
+        elem.clear()
+        elem.send_keys(rule_id)
 
-    def set_trigger(self, trigger_name, params=None):
-        triggers_section = self.wait.until(EC.visibility_of_element_located((self.locators['triggers']['by'], self.locators['triggers']['value'])))
-        # Example: select trigger by name
-        trigger_input = triggers_section.find_element(By.XPATH, f".//input[@name='triggerName']")
-        trigger_input.clear()
-        trigger_input.send_keys(trigger_name)
-        if params:
-            for key, value in params.items():
-                param_input = triggers_section.find_element(By.XPATH, f".//input[@name='{key}']")
-                param_input.clear()
-                param_input.send_keys(value)
+    def enter_rule_name(self, rule_name: str):
+        elem = self.driver.find_element(By.NAME, self.locators["ruleForm"]["ruleNameInput"].split('=')[1])
+        elem.clear()
+        elem.send_keys(rule_name)
 
-    def set_condition(self, condition_name, params=None):
-        conditions_section = self.wait.until(EC.visibility_of_element_located((self.locators['conditions']['by'], self.locators['conditions']['value'])))
-        condition_input = conditions_section.find_element(By.XPATH, f".//input[@name='conditionName']")
-        condition_input.clear()
-        condition_input.send_keys(condition_name)
-        if params:
-            for key, value in params.items():
-                param_input = conditions_section.find_element(By.XPATH, f".//input[@name='{key}']")
-                param_input.clear()
-                param_input.send_keys(value)
+    def click_save_rule(self):
+        elem = self.driver.find_element(By.CSS_SELECTOR, self.locators["ruleForm"]["saveRuleButton"])
+        elem.click()
 
-    def set_action(self, action_name, params=None):
-        actions_section = self.wait.until(EC.visibility_of_element_located((self.locators['actions']['by'], self.locators['actions']['value'])))
-        action_input = actions_section.find_element(By.XPATH, f".//input[@name='actionName']")
-        action_input.clear()
-        action_input.send_keys(action_name)
-        if params:
-            for key, value in params.items():
-                param_input = actions_section.find_element(By.XPATH, f".//input[@name='{key}']")
-                param_input.clear()
-                param_input.send_keys(value)
+    # --- Triggers ---
+    def select_trigger_type(self, trigger_type: str):
+        dropdown = self.driver.find_element(By.ID, self.locators["triggers"]["triggerTypeDropdown"].split('=')[1])
+        dropdown.click()
+        # Add logic to select trigger_type from dropdown
 
-    def submit_rule(self):
-        rule_form = self.open_rule_form()
-        submit_button = rule_form.find_element(By.XPATH, ".//button[@type='submit']")
-        submit_button.click()
+    def set_date_picker(self, date_str: str):
+        date_input = self.driver.find_element(By.CSS_SELECTOR, self.locators["triggers"]["datePicker"])
+        date_input.clear()
+        date_input.send_keys(date_str)
 
-    def get_validation_message(self):
-        validation_elem = self.wait.until(EC.visibility_of_element_located((self.locators['validation']['by'], self.locators['validation']['value'])))
-        return validation_elem.text
+    def set_recurring_interval(self, interval: str):
+        interval_input = self.driver.find_element(By.ID, self.locators["triggers"]["recurringIntervalInput"].split('=')[1])
+        interval_input.clear()
+        interval_input.send_keys(interval)
 
-    def validate_rule_creation(self, expected_message):
-        actual_message = self.get_validation_message()
-        assert actual_message == expected_message, f"Expected validation message '{expected_message}', got '{actual_message}'"
+    def toggle_after_deposit(self, enable: bool):
+        toggle = self.driver.find_element(By.ID, self.locators["triggers"]["afterDepositToggle"].split('=')[1])
+        if toggle.is_selected() != enable:
+            toggle.click()
+
+    # --- Conditions ---
+    def click_add_condition(self):
+        btn = self.driver.find_element(By.ID, self.locators["conditions"]["addConditionBtn"].split('=')[1])
+        btn.click()
+
+    def select_condition_type(self, condition_type: str):
+        dropdown = self.driver.find_element(By.CSS_SELECTOR, self.locators["conditions"]["conditionTypeDropdown"])
+        dropdown.click()
+        # Add logic to select condition_type
+
+    def enter_balance_threshold(self, threshold: str):
+        input_elem = self.driver.find_element(By.CSS_SELECTOR, self.locators["conditions"]["balanceThresholdInput"])
+        input_elem.clear()
+        input_elem.send_keys(threshold)
+
+    def select_transaction_source(self, source: str):
+        dropdown = self.driver.find_element(By.ID, self.locators["conditions"]["transactionSourceDropdown"].split('=')[1])
+        dropdown.click()
+        # Add logic to select source
+
+    def select_operator(self, operator: str):
+        dropdown = self.driver.find_element(By.CSS_SELECTOR, self.locators["conditions"]["operatorDropdown"])
+        dropdown.click()
+        # Add logic to select operator
+
+    # --- Actions ---
+    def select_action_type(self, action_type: str):
+        dropdown = self.driver.find_element(By.ID, self.locators["actions"]["actionTypeDropdown"].split('=')[1])
+        dropdown.click()
+        # Add logic to select action_type
+
+    def enter_transfer_amount(self, amount: str):
+        input_elem = self.driver.find_element(By.NAME, self.locators["actions"]["transferAmountInput"].split('=')[1])
+        input_elem.clear()
+        input_elem.send_keys(amount)
+
+    def enter_percentage(self, percentage: str):
+        input_elem = self.driver.find_element(By.ID, self.locators["actions"]["percentageInput"].split('=')[1])
+        input_elem.clear()
+        input_elem.send_keys(percentage)
+
+    def enter_destination_account(self, account_id: str):
+        input_elem = self.driver.find_element(By.ID, self.locators["actions"]["destinationAccountInput"].split('=')[1])
+        input_elem.clear()
+        input_elem.send_keys(account_id)
+
+    # --- Validation ---
+    def edit_json_schema(self, schema: dict):
+        editor = self.driver.find_element(By.CSS_SELECTOR, self.locators["validation"]["jsonSchemaEditor"])
+        editor.clear()
+        editor.send_keys(json.dumps(schema))
+
+    def click_validate_schema(self):
+        btn = self.driver.find_element(By.ID, self.locators["validation"]["validateSchemaBtn"].split('=')[1])
+        btn.click()
+
+    def get_success_message(self):
+        try:
+            msg = WebDriverWait(self.driver, 10).until(
+                EC.visibility_of_element_located((By.CSS_SELECTOR, self.locators["validation"]["successMessage"]))
+            )
+            return msg.text
+        except TimeoutException:
+            return None
+
+    def get_schema_error_message(self):
+        try:
+            msg = WebDriverWait(self.driver, 10).until(
+                EC.visibility_of_element_located((By.CSS_SELECTOR, self.locators["validation"]["schemaErrorMessage"]))
+            )
+            return msg.text
+        except TimeoutException:
+            return None
