@@ -113,3 +113,20 @@ class RuleConfigurationPage:
                 return error.text
             except TimeoutException:
                 return None
+
+    # Test Case TC_SCRUM158_09: Submit schema with malicious metadata and verify rejection
+    def submit_schema_with_malicious_metadata(self, schema_text):
+        '''
+        Submits a schema with malicious script in metadata and verifies error message is shown.
+        schema_text: JSON string containing the schema with <script> in metadata.
+        Returns the error message if present.
+        '''
+        editor = self.wait.until(EC.visibility_of_element_located(self.json_schema_editor))
+        editor.clear()
+        editor.send_keys(schema_text)
+        self.wait.until(EC.element_to_be_clickable(self.validate_schema_btn)).click()
+        try:
+            error = self.wait.until(EC.visibility_of_element_located(self.schema_error_message))
+            return error.text
+        except TimeoutException:
+            return None
