@@ -91,3 +91,32 @@ class TestScripts:
         result = rule_page.submit_rule_with_sql_injection(sql_injection_rule)
         assert result['rejected'] is True, "System did not reject SQL injection rule"
         assert any(word in result['error_message'].lower() for word in ['sql', 'invalid', 'rejected']), f"Unexpected error message: {result['error_message']}"
+
+    # TC-FT-009: Create, store, and retrieve a valid rule
+    def test_create_and_retrieve_valid_rule(self, driver):
+        rule_page = RulePage(driver)
+        rule_data = {
+            "trigger": {"type": "specific_date", "date": "2024-07-01T10:00:00Z"},
+            "action": {"type": "fixed_amount", "amount": 100},
+            "conditions": []
+        }
+        submission_result = rule_page.create_and_store_rule(rule_data)
+        assert "success" in submission_result.lower() or "stored" in submission_result.lower(), f"Rule submission failed: {submission_result}"
+        rule_identifier = "specific_date_2024-07-01T10:00:00Z_fixed_amount_100"
+        retrieved_rule = rule_page.retrieve_rule(rule_identifier)
+        assert str(rule_data['trigger']['type']) in retrieved_rule
+        assert str(rule_data['action']['type']) in retrieved_rule
+        assert str(rule_data['action']['amount']) in retrieved_rule
+
+    # TC-FT-010: Define a rule with empty conditions and trigger it
+    def test_define_rule_with_empty_conditions_and_trigger(self, driver):
+        rule_page = RulePage(driver)
+        rule_data = {
+            "trigger": {"type": "after_deposit"},
+            "action": {"type": "fixed_amount", "amount": 100},
+            "conditions": []
+        }
+        submission_result = rule_page.create_and_store_rule(rule_data)
+        assert "success" in submission_result.lower() or "stored" in submission_result.lower(), f"Rule submission failed: {submission_result}"
+        trigger_result = rule_page.trigger_rule({"deposit": 1000})
+        assert "transfer executed" in trigger_result.lower() or "success" in trigger_result.lower(), f"Transfer not executed as expected: {trigger_result}"
