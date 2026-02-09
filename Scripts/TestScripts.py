@@ -191,3 +191,29 @@ class TestRuleConfiguration:
         }
         result = self.rule_page.submit_max_conditions_actions_schema_and_verify_storage(schema)
         assert result is True, "Rule with maximum allowed conditions/actions was not accepted."
+
+    # --- Appended for TC_SCRUM158_07 ---
+    def test_TC_SCRUM158_07_minimal_schema_rule_creation(self):
+        """
+        TC_SCRUM158_07: Prepare a minimal schema with one trigger (manual), one condition (amount==1), one action (transfer to G, amount 1), submit using create_rule_with_minimal_schema, and verify rule creation.
+        """
+        minimal_schema = {
+            "trigger": {"type": "manual"},
+            "conditions": [{"type": "amount", "operator": "==", "value": 1}],
+            "actions": [{"type": "transfer", "account": "G", "amount": 1}]
+        }
+        result = self.rule_page.create_rule_with_minimal_schema(minimal_schema)
+        assert result is True, "Minimal schema rule was not accepted or created."
+
+    # --- Appended for TC_SCRUM158_08 ---
+    def test_TC_SCRUM158_08_large_metadata_rule_creation_performance(self):
+        """
+        TC_SCRUM158_08: Prepare a schema with a large metadata field (10,000 characters), submit using create_rule_with_large_metadata, and verify rule acceptance and performance.
+        """
+        large_metadata = "x" * 10000
+        large_schema = {
+            "trigger": {"type": "manual"},
+            "metadata": large_metadata
+        }
+        result = self.rule_page.create_rule_with_large_metadata(large_schema)
+        assert result is True, "Large metadata rule was not accepted or performance was not within limits."
