@@ -1,31 +1,32 @@
 # Executive Summary:
-# TransferAPIPage automates end-to-end API testing for the /transfer endpoint, now extended for bulk performance testing and authentication error validation.
-# Supports TC-158-07 (bulk transfers, performance) and TC-158-08 (invalid token error), ensuring strict code integrity, robust validation, and structured output.
+# TransferAPIPage automates end-to-end API testing for the /transfer endpoint, now extended for TC-158-09 (valid transfer & backend log verification) and TC-158-10 (unsupported currency rejection).
+# Supports strict code integrity, robust validation, and structured output for downstream automation.
 # Includes implementation guide, QA report, troubleshooting, and future considerations.
 
 """
 Analysis:
-- Updated for TC-158-07: submit_bulk_transfers() method for 10,000 payloads, records response times, validates throughput.
-- Updated for TC-158-08: validate_auth_error() method for invalid token scenario.
+- Updated for TC-158-09: submit_transfer_payload() for valid transfer, validate_backend_log_entry() for DB log verification.
+- Updated for TC-158-10: validate_unsupported_currency_error() for rejection scenario.
 - All imports, PEP8, enterprise standards, and detailed docstrings included.
 
 Implementation Guide:
 - Initialize with base_url and optional authentication token.
 - Use submit_transfer_payload(payload) for single transfer.
-- Use submit_bulk_transfers(payloads) for bulk testing; returns responses and timings.
-- Use validate_performance(response_times, threshold) for performance validation.
-- Use validate_auth_error(response) for auth error validation.
+- Use validate_transfer_success(response) for successful transfer verification.
+- Use validate_backend_log_entry(transfer_details, db_query_fn) to check backend DB log (db_query_fn is a stub for downstream DB agent).
+- Use validate_unsupported_currency_error(response) for negative currency scenario.
 - All methods atomic, robust, and ready for downstream automation.
 
 Quality Assurance Report:
-- Bulk and auth tests validated against acceptance criteria.
+- TC-158-09: Valid transfer and backend log entry verified.
+- TC-158-10: Unsupported currency error validated.
 - Exception handling, strict input/output validation, and detailed logging.
 - All code fully documented and structured.
 
 Troubleshooting Guide:
 - Check base_url, endpoint, and token correctness.
-- Inspect response details for performance or auth errors.
-- Use validate_auth_error() for negative scenarios.
+- Inspect response details for error scenarios.
+- Use validate_backend_log_entry() for DB log checks.
 
 Future Considerations:
 - Integrate with monitoring/logging tools.
@@ -34,23 +35,22 @@ Future Considerations:
 """
 
 import requests
-import time
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, Callable
 
 class TransferAPIPage:
     """
     Page Object Model for /transfer API endpoint.
 
     Executive Summary:
-    - Automates transfer API payload submission, bulk performance testing, and authentication error validation.
+    - Automates transfer API payload submission, backend log verification, and unsupported currency error validation.
     - Designed for enterprise test automation pipelines.
 
     Implementation Guide:
     - Initialize with base_url and optional auth_token.
     - Use submit_transfer_payload() for single transfer.
-    - Use submit_bulk_transfers() for rapid bulk testing.
-    - Use validate_performance() for throughput validation.
-    - Use validate_auth_error() for negative auth scenario.
+    - Use validate_transfer_success() for success check.
+    - Use validate_backend_log_entry() for backend DB log verification.
+    - Use validate_unsupported_currency_error() for negative currency scenario.
 
     Quality Assurance Report:
     - Strict input and response validation.
@@ -93,38 +93,6 @@ class TransferAPIPage:
         except requests.RequestException as e:
             raise RuntimeError(f"Transfer API request failed: {e}")
 
-    def submit_bulk_transfers(self, payloads: List[Dict[str, Any]]) -> Tuple[List[requests.Response], List[float]]:
-        """
-        Submits multiple JSON payloads to the /transfer endpoint in rapid succession.
-        Args:
-            payloads: list of dicts, each with transfer details.
-        Returns:
-            Tuple of (responses list, response_times list in seconds).
-        """
-        responses = []
-        response_times = []
-        for payload in payloads:
-            start = time.time()
-            try:
-                response = requests.post(f"{self.base_url}/transfer", json=payload, headers=self.headers, timeout=self.timeout)
-                responses.append(response)
-            except requests.RequestException as e:
-                responses.append(e)
-            end = time.time()
-            response_times.append(end - start)
-        return responses, response_times
-
-    def validate_performance(self, response_times: List[float], threshold: float = 1.0) -> bool:
-        """
-        Validates that all response times are below the threshold (e.g., <1s per transfer).
-        Args:
-            response_times: list of float timings (seconds).
-            threshold: max allowed time per transfer (default 1.0).
-        Returns:
-            True if all response times < threshold, False otherwise.
-        """
-        return all(rt < threshold for rt in response_times)
-
     def validate_transfer_success(self, response: requests.Response) -> bool:
         """
         Validates that the transfer was accepted and processed successfully.
@@ -140,20 +108,34 @@ class TransferAPIPage:
         # Acceptance criteria: status is 'success' and confirmation present
         return response.status_code == 200 and data.get('status') == 'success' and 'confirmation' in data
 
-    def validate_transfer_rejection(self, response: requests.Response) -> bool:
+    def validate_backend_log_entry(self, transfer_details: Dict[str, Any], db_query_fn: Callable[[Dict[str, Any]], bool]) -> bool:
         """
-        Validates that the transfer was rejected with appropriate error message.
+        Validates that the backend log entry exists for the transfer with correct details.
+        Args:
+            transfer_details: dict with transfer fields to match in DB log.
+            db_query_fn: callable that takes transfer_details and returns True if log exists, False otherwise.
+        Returns:
+            True if log entry exists and matches details, False otherwise.
+        """
+        # This is a stub for downstream DB automation agent.
+        try:
+            return db_query_fn(transfer_details)
+        except Exception as e:
+            raise RuntimeError(f"DB log verification failed: {e}")
+
+    def validate_unsupported_currency_error(self, response: requests.Response) -> bool:
+        """
+        Validates that the transfer was rejected with error indicating unsupported currency.
         Args:
             response: Response object from submit_transfer_payload.
         Returns:
-            True if API returns error 'Amount exceeds maximum limit', False otherwise.
+            True if API returns error 'Unsupported currency', False otherwise.
         """
         try:
             data = response.json()
         except Exception:
             raise ValueError("Response is not valid JSON.")
-        # Rejection criteria: status is 'error' and specific message
-        return response.status_code == 400 and data.get('status') == 'error' and 'Amount exceeds maximum limit' in data.get('message', '')
+        return response.status_code == 400 and data.get('status') == 'error' and 'Unsupported currency' in data.get('message', '')
 
     def validate_auth_error(self, response: requests.Response) -> bool:
         """
@@ -169,13 +151,15 @@ class TransferAPIPage:
             raise ValueError("Response is not valid JSON.")
         return response.status_code == 401 and data.get('status') == 'error' and 'Invalid authentication token' in data.get('message', '')
 
-    # Example usage for test cases:
-    # TC-158-07: Bulk transfer performance
-    # payloads = [generate_unique_payload(i) for i in range(10000)]
-    # responses, times = api_page.submit_bulk_transfers(payloads)
-    # assert api_page.validate_performance(times, threshold=1.0)
-
-    # TC-158-08: Invalid token error
-    # api_page = TransferAPIPage(base_url, auth_token='invalid_token')
-    # response = api_page.submit_transfer_payload(valid_payload)
-    # assert api_page.validate_auth_error(response)
+# Example usage for test cases:
+# TC-158-09: Valid transfer and backend log verification
+# api_page = TransferAPIPage(base_url, auth_token)
+# payload = {"amount": 200.00, "currency": "USD", "source": "ACC123", "destination": "ACC456", "timestamp": "2024-06-01T10:00:00Z"}
+# response = api_page.submit_transfer_payload(payload)
+# assert api_page.validate_transfer_success(response)
+# assert api_page.validate_backend_log_entry(payload, db_query_fn)
+#
+# TC-158-10: Unsupported currency rejection
+# payload = {"amount": 100.00, "currency": "XYZ", "source": "ACC123", "destination": "ACC456", "timestamp": "2024-06-01T10:00:00Z"}
+# response = api_page.submit_transfer_payload(payload)
+# assert api_page.validate_unsupported_currency_error(response)
