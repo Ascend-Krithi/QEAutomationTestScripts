@@ -1,5 +1,6 @@
 import unittest
 from Pages.FinancialTransferPage import FinancialTransferPage
+from Pages.RuleConfigurationPage import RuleConfigurationPage
 
 class TestScripts(unittest.TestCase):
 
@@ -152,6 +153,42 @@ class TestScripts(unittest.TestCase):
         response = page.submit_transfer(payload)
         self.assertFalse(page.is_transfer_successful(response), "Transfer should not succeed with unsupported currency")
         self.assertIn('Unsupported currency', page.get_error_message(response), "Error message does not indicate unsupported currency")
+
+    # --- New Tests for Rule Configuration Automation ---
+    def test_TC_SCRUM158_01_rule_schema_persistence(self):
+        """
+        TC_SCRUM158_01: Prepare a JSON rule schema with all supported trigger, condition, and action types, submit it via API, and validate persistence in the database.
+        """
+        page = RuleConfigurationPage(driver=None)
+        schema = page.prepare_rule_schema()
+        api_response = page.submit_rule_schema_api(schema)
+        self.assertIn('id', api_response, 'API did not return rule id')
+        rule_id = api_response['id']
+        db_rule = page.retrieve_rule_from_db(rule_id)
+        self.assertEqual(schema['trigger'], db_rule['trigger'], 'Trigger mismatch between schema and DB')
+        self.assertEqual(schema['conditions'], db_rule['conditions'], 'Conditions mismatch between schema and DB')
+        self.assertEqual(schema['actions'], db_rule['actions'], 'Actions mismatch between schema and DB')
+
+    def test_TC_SCRUM158_02_rule_simulation(self):
+        """
+        TC_SCRUM158_02: Prepare a rule schema with two conditions and two actions, submit via API, and verify simulation logic.
+        """
+        page = RuleConfigurationPage(driver=None)
+        conditions = [
+            {"type": "amount_above", "value": 1000},
+            {"type": "date_range", "start": "2024-01-01", "end": "2024-12-31"}
+        ]
+        actions = [
+            {"type": "notify", "recipient": "admin"},
+            {"type": "transfer", "account": "external"}
+        ]
+        schema = page.prepare_rule_schema(conditions=conditions, actions=actions)
+        api_response = page.submit_rule_schema_api(schema)
+        self.assertIn('id', api_response, 'API did not return rule id')
+        simulation_result = page.simulate_rule_evaluation(schema)
+        self.assertTrue(simulation_result['conditions_evaluated'], 'Conditions not evaluated as expected')
+        self.assertTrue(simulation_result['actions_triggered'], 'Actions not triggered as expected')
+        self.assertIn('details', simulation_result)
 
 if __name__ == '__main__':
     unittest.main()
