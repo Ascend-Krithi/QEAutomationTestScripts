@@ -1,95 +1,136 @@
 # LoginPage.py
 """
-Selenium PageClass for Login Page
-Handles navigation to login, credential entry, and login submission.
-
-Industry Best Practices:
-- Locators encapsulated as class attributes
-- Explicit waits for element visibility/clickability
-- Clear docstrings and method documentation
-- Error handling for invalid login scenarios
+PageClass for Login Page
+Covers: TC_LOGIN_07, TC_LOGIN_001, TC_LOGIN_003, TC_LOGIN_004
+Ensures positive and negative login scenarios, including 'Remember Me', session expiration, and browser reopen.
 """
-
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
 
 class LoginPage:
     """
-    Page Object for Login Page.
+    Page Object Model for the Login Page.
+    Covers:
+    - Negative scenarios: missing credentials
+    - Positive scenarios: login with valid credentials
+    - 'Remember Me' functionality
+    - Session expiration and browser reopen
     """
-    # Locators (assumed based on repo conventions)
-    login_url = "/login"
-    username_input = (By.ID, "username")
-    password_input = (By.ID, "password")
-    submit_button = (By.ID, "login-submit")
-    error_message = (By.CSS_SELECTOR, ".alert-error")
 
-    def __init__(self, driver, base_url):
+    EMAIL_INPUT = (By.ID, "email")
+    PASSWORD_INPUT = (By.ID, "password")
+    LOGIN_BUTTON = (By.ID, "loginBtn")
+    ERROR_MESSAGE = (By.ID, "errorMsg")
+    REMEMBER_ME_CHECKBOX = (By.ID, "rememberMe")
+
+    def __init__(self, driver: WebDriver):
         """
-        Args:
-            driver (WebDriver): Selenium WebDriver instance
-            base_url (str): Base URL of application
+        Initializes the LoginPage with a WebDriver instance.
+        :param driver: Selenium WebDriver instance
         """
         self.driver = driver
-        self.base_url = base_url
         self.wait = WebDriverWait(driver, 10)
 
-    def navigate(self):
+    def navigate_to_login(self, url: str):
         """
-        Navigate to the login page.
+        Navigates to the login page.
+        :param url: Login page URL
         """
-        self.driver.get(self.base_url + self.login_url)
+        self.driver.get(url)
 
-    def enter_username(self, username):
+    def enter_email(self, email: str):
         """
-        Enter username into the username field.
-        Args:
-            username (str): Username string
+        Enters the email/username in the email input field.
+        :param email: Email or username string
         """
-        elem = self.wait.until(EC.visibility_of_element_located(self.username_input))
-        elem.clear()
-        elem.send_keys(username)
+        email_input = self.wait.until(EC.visibility_of_element_located(self.EMAIL_INPUT))
+        email_input.clear()
+        email_input.send_keys(email)
 
-    def enter_password(self, password):
+    def enter_password(self, password: str):
         """
-        Enter password into the password field.
-        Args:
-            password (str): Password string
+        Enters the password in the password input field.
+        :param password: Password string
         """
-        elem = self.wait.until(EC.visibility_of_element_located(self.password_input))
-        elem.clear()
-        elem.send_keys(password)
+        password_input = self.wait.until(EC.visibility_of_element_located(self.PASSWORD_INPUT))
+        password_input.clear()
+        password_input.send_keys(password)
 
-    def submit(self):
+    def click_login(self):
         """
-        Click the login submit button.
+        Clicks the login button.
         """
-        btn = self.wait.until(EC.element_to_be_clickable(self.submit_button))
-        btn.click()
+        login_btn = self.wait.until(EC.element_to_be_clickable(self.LOGIN_BUTTON))
+        login_btn.click()
 
-    def login(self, username, password):
+    def get_error_message(self) -> str:
         """
-        Perform login with provided credentials.
-        Args:
-            username (str): Username
-            password (str): Password
-        Returns:
-            bool: True if login likely successful (dashboard loaded), False otherwise (error shown)
+        Returns the error message displayed on the login page.
+        :return: Error message text
         """
-        self.enter_username(username)
+        error_elem = self.wait.until(EC.visibility_of_element_located(self.ERROR_MESSAGE))
+        return error_elem.text
+
+    def set_remember_me(self, checked: bool):
+        """
+        Sets the 'Remember Me' checkbox.
+        :param checked: True to check, False to uncheck
+        """
+        checkbox = self.wait.until(EC.element_to_be_clickable(self.REMEMBER_ME_CHECKBOX))
+        if checkbox.is_selected() != checked:
+            checkbox.click()
+
+    def login_with_credentials(self, email: str, password: str, remember_me: bool = False):
+        """
+        Enters credentials, sets 'Remember Me', and clicks login.
+        :param email: Email or username
+        :param password: Password
+        :param remember_me: Whether to select 'Remember Me'
+        """
+        self.enter_email(email)
         self.enter_password(password)
-        self.submit()
+        self.set_remember_me(remember_me)
+        self.click_login()
 
-    def get_error_message(self):
+    def validate_missing_email_error(self, password: str) -> bool:
         """
-        Retrieve error message after invalid login attempt.
-        Returns:
-            str: Error message text if present, else None
+        Attempts login with missing email/username and validates the error message.
+        :param password: Valid password
+        :return: True if correct error is shown, else False
+        """
+        self.enter_email("")
+        self.enter_password(password)
+        self.click_login()
+        return self.get_error_message().strip() == "Email/Username required"
+
+    def validate_missing_password_error(self, email: str) -> bool:
+        """
+        Attempts login with missing password and validates the error message.
+        :param email: Valid email/username
+        :return: True if correct error is shown, else False
+        """
+        self.enter_email(email)
+        self.enter_password("")
+        self.click_login()
+        return self.get_error_message().strip() == "Password required"
+
+    def is_remember_me_selected(self) -> bool:
+        """
+        Checks if 'Remember Me' checkbox is selected.
+        :return: True if selected, False otherwise
+        """
+        checkbox = self.wait.until(EC.presence_of_element_located(self.REMEMBER_ME_CHECKBOX))
+        return checkbox.is_selected()
+
+    def session_expired(self) -> bool:
+        """
+        Checks if session has expired after browser reopen (user is logged out).
+        :return: True if login page is displayed, False otherwise
         """
         try:
-            elem = self.wait.until(EC.visibility_of_element_located(self.error_message))
-            return elem.text
-        except TimeoutException:
-            return None
+            self.wait.until(EC.visibility_of_element_located(self.EMAIL_INPUT))
+            return True
+        except Exception:
+            return False

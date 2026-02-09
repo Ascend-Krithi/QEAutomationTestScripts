@@ -1,44 +1,46 @@
 # DashboardPage.py
 """
-Selenium PageClass for Dashboard Page
-Validates successful login by checking dashboard elements.
-
-Industry Best Practices:
-- Locators encapsulated as class attributes
-- Explicit waits for element visibility
-- Clear docstrings and method documentation
+PageClass for Dashboard Page
+Covers: TC_LOGIN_001, TC_LOGIN_07 (post-login validation, session expiration)
+Ensures dashboard access and session management.
 """
-
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
 
 class DashboardPage:
     """
-    Page Object for Dashboard Page.
+    Page Object Model for the Dashboard/Home Page.
+    Covers:
+    - Post-login redirection
+    - Session expiration handling
     """
-    # Locators (assumed based on repo conventions)
-    dashboard_header = (By.CSS_SELECTOR, "h1.dashboard-title")
-    user_profile_icon = (By.ID, "profile-icon")
 
-    def __init__(self, driver):
+    DASHBOARD_HEADER = (By.ID, "dashboardHeader")  # Assumed locator
+
+    def __init__(self, driver: WebDriver):
         """
-        Args:
-            driver (WebDriver): Selenium WebDriver instance
+        Initializes the DashboardPage with a WebDriver instance.
+        :param driver: Selenium WebDriver instance
         """
         self.driver = driver
         self.wait = WebDriverWait(driver, 10)
 
-    def is_loaded(self):
+    def is_dashboard_displayed(self) -> bool:
         """
-        Validate that the dashboard page is loaded.
-        Returns:
-            bool: True if dashboard header and profile icon are visible, False otherwise
+        Validates that the dashboard/home page is displayed.
+        :return: True if dashboard header is visible, else False
         """
         try:
-            self.wait.until(EC.visibility_of_element_located(self.dashboard_header))
-            self.wait.until(EC.visibility_of_element_located(self.user_profile_icon))
+            self.wait.until(EC.visibility_of_element_located(self.DASHBOARD_HEADER))
             return True
-        except TimeoutException:
+        except Exception:
             return False
+
+    def is_session_active(self) -> bool:
+        """
+        Checks if session is still active (dashboard visible).
+        :return: True if dashboard is displayed, False otherwise
+        """
+        return self.is_dashboard_displayed()
