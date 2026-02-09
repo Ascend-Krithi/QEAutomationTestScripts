@@ -92,3 +92,40 @@ class TestRuleEngine:
         # Simulate deposit for existing rule
         self.rule_engine.simulate_deposit(500)
         assert "transfer" in self.deposit_page.get_transfer_message().lower(), "Existing rules did not execute as expected."
+
+@pytest.mark.performance
+def test_batch_load_and_evaluate_rules(rule_engine_page, perf_threshold_seconds=30):
+    """
+    TC-FT-007: Load 10,000 valid rules in batch and trigger evaluation for all rules.
+    Assert upload and evaluation complete within performance threshold.
+    """
+    import time
+
+    # Generate 10,000 dummy rules
+    rules = [
+        {"rule_id": f"R{i}", "condition": f"value > {i}", "action": "accept"}
+        for i in range(10000)
+    ]
+    start_time = time.time()
+    upload_result = rule_engine_page.batch_load_rules(rules)
+    assert upload_result, "Batch rule upload failed."
+    eval_result = rule_engine_page.evaluate_all_rules()
+    assert eval_result, "Batch rule evaluation failed."
+    elapsed = time.time() - start_time
+    assert elapsed < perf_threshold_seconds, f"Batch operation exceeded performance threshold: {elapsed:.2f}s"
+
+@pytest.mark.security
+def test_sql_injection_rejection(rule_page):
+    """
+    TC-FT-008: Submit a rule with SQL injection in a field value.
+    Assert that the system rejects the rule and no SQL is executed.
+    """
+    # Example SQL injection payload
+    malicious_rule = {
+        "rule_id": "R_SQLI",
+        "condition": "'; DROP TABLE rules; --",
+        "action": "accept"
+    }
+    rule_page.submit_rule_with_sql_injection(malicious_rule)
+    rejected = rule_page.is_rule_rejected(malicious_rule)
+    assert rejected, "Rule with SQL injection was not rejected as expected."
