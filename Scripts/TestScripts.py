@@ -76,28 +76,34 @@ class TestRuleConfiguration:
         response_json = response.json()
         assert "error" in response_json, "Error should be present in response when trigger type is unsupported"
 
-    def test_TC_SCRUM158_05_invalid_trigger(self):
+    def test_TC_SCRUM158_05_invalid_trigger_schema(self):
         """
-        Test case TC_SCRUM158_05: Prepare schema with invalid trigger, validate, submit, and verify error.
+        TC_SCRUM158_05: Prepare a rule schema with an invalid trigger value (e.g., 'unknown_trigger'), validate (should fail), submit (API should return 400 Bad Request with error about invalid value)
         """
         api_url = "http://localhost:8000/rules"
         headers = {"Content-Type": "application/json"}
-        schema = self.rule_config_page.prepare_invalid_trigger_schema()
-        is_valid, error_msg = self.rule_config_page.validate_rule_schema(str(schema))
-        assert not is_valid, f"Schema should be invalid for unknown trigger. Error: {error_msg}"
-        status_code, response = self.rule_config_page.submit_rule_schema_api(schema, api_url, headers)
-        assert status_code == 400, f"API should return 400 Bad Request for invalid trigger, got {status_code}. Response: {response}"
-        assert 'invalid' in str(response).lower() or 'error' in str(response).lower(), "Expected error about invalid trigger in response."
+        # Prepare invalid trigger schema
+        invalid_trigger_schema = self.rule_config_page.prepare_rule_schema_with_trigger("unknown_trigger")
+        is_valid = self.rule_config_page.validate_rule_schema(invalid_trigger_schema)
+        assert not is_valid, "Schema with invalid trigger should fail validation"
+        response = self.rule_config_page.submit_rule_schema_api(invalid_trigger_schema, api_url, headers)
+        assert response.status_code == 400, f"Expected 400 Bad Request, got {response.status_code}"
+        response_json = response.json()
+        assert "error" in response_json, "Error should be present in response when trigger value is invalid"
+        assert "invalid trigger" in response_json["error"].lower(), f"Expected error about invalid trigger, got '{response_json['error']}'"
 
-    def test_TC_SCRUM158_06_missing_condition(self):
+    def test_TC_SCRUM158_06_missing_condition_parameter_schema(self):
         """
-        Test case TC_SCRUM158_06: Prepare schema with missing condition parameters, validate, submit, and verify error.
+        TC_SCRUM158_06: Prepare a rule schema with a condition missing required parameters, validate (should fail), submit (API should return 400 Bad Request with error about incomplete condition)
         """
         api_url = "http://localhost:8000/rules"
         headers = {"Content-Type": "application/json"}
-        schema = self.rule_config_page.prepare_missing_condition_schema()
-        is_valid, error_msg = self.rule_config_page.validate_rule_schema(str(schema))
-        assert not is_valid, f"Schema should be invalid for missing condition parameters. Error: {error_msg}"
-        status_code, response = self.rule_config_page.submit_rule_schema_api(schema, api_url, headers)
-        assert status_code == 400, f"API should return 400 Bad Request for incomplete condition, got {status_code}. Response: {response}"
-        assert 'incomplete' in str(response).lower() or 'error' in str(response).lower(), "Expected error about incomplete condition in response."
+        # Prepare condition missing required parameter
+        incomplete_condition_schema = self.rule_config_page.prepare_rule_schema_with_incomplete_condition()
+        is_valid = self.rule_config_page.validate_rule_schema(incomplete_condition_schema)
+        assert not is_valid, "Schema with missing condition parameters should fail validation"
+        response = self.rule_config_page.submit_rule_schema_api(incomplete_condition_schema, api_url, headers)
+        assert response.status_code == 400, f"Expected 400 Bad Request, got {response.status_code}"
+        response_json = response.json()
+        assert "error" in response_json, "Error should be present in response when condition is incomplete"
+        assert "missing" in response_json["error"].lower() or "incomplete" in response_json["error"].lower(), f"Expected error about missing/incomplete condition, got '{response_json['error']}'"
