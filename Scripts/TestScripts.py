@@ -43,6 +43,25 @@ class TestLoginFunctionality:
         error_message = self.login_page.login_with_empty_password("user@example.com")
         assert error_message == "Password required", f"Expected 'Password required', got '{error_message}'"
 
+    def test_TC_Login_05_empty_fields(self):
+        """
+        TC_Login_05: Navigate to login page, leave email and password empty, click login, verify error messages.
+        """
+        self.login_page.navigate_to_login()
+        errors = self.login_page.login_with_empty_fields()
+        assert errors['email_error'] == 'Email required', f"Expected 'Email required', got '{errors['email_error']}'"
+        assert errors['password_error'] == 'Password required', f"Expected 'Password required', got '{errors['password_error']}'"
+
+    def test_TC_Login_06_remember_me_session_persistence(self):
+        """
+        TC_Login_06: Enter valid credentials, select 'Remember Me', login, close and reopen browser, verify session persistence.
+        """
+        self.login_page.navigate_to_login()
+        result = self.login_page.login_with_remember_me("user@example.com", "ValidPassword123")
+        assert result, "User should be redirected to dashboard after login."
+        session_persisted = self.login_page.verify_session_persistence("/login")
+        assert session_persisted, "Session should persist after browser restart."
+
 class TestRuleConfiguration:
     def setup_method(self):
         self.driver = webdriver.Chrome()
@@ -107,3 +126,4 @@ class TestRuleConfiguration:
         response_json = response.json()
         assert "error" in response_json, "Error should be present in response when condition is incomplete"
         assert "missing" in response_json["error"].lower() or "incomplete" in response_json["error"].lower(), f"Expected error about missing/incomplete condition, got '{response_json['error']}'"
+
