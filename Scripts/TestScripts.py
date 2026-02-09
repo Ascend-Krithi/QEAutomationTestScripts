@@ -1,10 +1,11 @@
 # Import necessary modules
 from Pages.RuleConfigurationPage import RuleConfigurationPage
+from Pages.LoginPage import LoginPage
 
 class TestLoginFunctionality:
-    def __init__(self, page):
-        self.page = page
-        self.login_page = LoginPage(page)
+    def __init__(self, driver):
+        self.driver = driver
+        self.login_page = LoginPage(driver)
 
     async def test_empty_fields_validation(self):
         await self.login_page.navigate()
@@ -14,6 +15,32 @@ class TestLoginFunctionality:
     async def test_remember_me_functionality(self):
         await self.login_page.navigate()
         await self.login_page.fill_email('...')
+
+    def test_TC01_valid_login(self):
+        """
+        TC01: Valid login test.
+        Steps:
+        1. Navigate to the login page.
+        2. Enter valid username and password.
+        3. Click the 'Login' button.
+        4. Verify dashboard is displayed.
+        """
+        self.login_page.navigate_to_login_page('https://example.com/login')
+        self.login_page.login('valid_user', 'ValidPass123')
+        assert self.login_page.is_dashboard_displayed() is True, 'Dashboard should be displayed after valid login.'
+
+    def test_TC02_invalid_login(self):
+        """
+        TC02: Invalid login test.
+        Steps:
+        1. Navigate to the login page.
+        2. Enter invalid username and password.
+        3. Click the 'Login' button.
+        4. Verify error message is displayed.
+        """
+        self.login_page.navigate_to_login_page('https://example.com/login')
+        self.login_page.login('invalid_user', 'WrongPass')
+        assert self.login_page.is_error_message_displayed() is True, "Error message should be displayed after invalid login."
 
 class TestRuleConfiguration:
     def __init__(self, driver):
