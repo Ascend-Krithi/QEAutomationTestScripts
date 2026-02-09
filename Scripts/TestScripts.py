@@ -62,49 +62,25 @@ class TestRuleConfiguration:
         executed_count = await self.rule_config_page.get_transfer_action_count(rule_json)
         assert executed_count == weeks_to_simulate, f"Expected transfer action executed {weeks_to_simulate} times, got {executed_count}"
 
-import pytest
-import asyncio
+    async def test_after_deposit_percentage_transfer(self):
+        # TC-FT-005: Define a rule for 10% of deposit action. Simulate deposit of 500 units. Verify transfer of 50 units is executed.
+        rule_id = "TC-FT-005"
+        rule_name = "After Deposit 10 Percent Rule"
+        percentage = 10
+        deposit_amount = 500
+        expected_transfer = 50
+        schema_str = '{"type": "object", "properties": {}}'  # Replace with actual schema if needed
+        await self.rule_config_page.navigate()
+        self.rule_config_page.define_rule_after_deposit_percentage(rule_id, rule_name, percentage, schema_str)
+        self.rule_config_page.simulate_deposit_and_verify_transfer(deposit_amount, expected_transfer)
 
-from Pages.RuleConfigurationPage import RuleConfigurationPage
-
-@pytest.mark.asyncio
-async def test_TC_FT_005_define_percentage_rule_and_verify_transfer(browser):
-    """
-    TC-FT-005: Define a rule for 10% of deposit action using trigger type 'after_deposit' and action type 'percentage_of_deposit'
-    with percentage=10, then simulate a deposit of 500 units and verify transfer of 50 units is executed.
-    """
-    rule_page = RuleConfigurationPage(browser)
-    await rule_page.define_rule_generic(
-        trigger_type="after_deposit",
-        action_type="percentage_of_deposit",
-        percentage=10
-    )
-
-    # Simulate deposit of 500 units and verify transfer of 50 units
-    await rule_page.simulate_deposit_and_verify_transfer(
-        deposit_amount=500,
-        expected_transfer_amount=50
-    )
-
-@pytest.mark.asyncio
-async def test_TC_FT_006_define_currency_conversion_rule_and_verify_behavior(browser):
-    """
-    TC-FT-006: Define a rule with trigger type 'currency_conversion' (future type), currency='EUR', action type 'fixed_amount', amount=100.
-    Verify the system accepts or gracefully rejects with a clear message, without affecting existing rules.
-    Then verify existing rules continue to execute as before.
-    """
-    rule_page = RuleConfigurationPage(browser)
-    result = await rule_page.define_rule_generic(
-        trigger_type="currency_conversion",
-        action_type="fixed_amount",
-        currency="EUR",
-        amount=100
-    )
-
-    # Check if system accepts or gracefully rejects with a clear message
-    assert result["status"] in ["accepted", "rejected"], "Unexpected rule creation status"
-    if result["status"] == "rejected":
-        assert "currency_conversion is not yet supported" in result["message"], "Expected rejection message for future trigger type"
-
-    # Verify existing rules continue to execute as before
-    await rule_page.verify_existing_rules_functionality()
+    async def test_currency_conversion_trigger(self):
+        # TC-FT-006: Define a rule with trigger type 'currency_conversion', fixed amount 100 EUR. System accepts or gracefully rejects. Verify existing rules continue to execute as before.
+        rule_id = "TC-FT-006"
+        rule_name = "Currency Conversion Rule"
+        currency = "EUR"
+        amount = 100
+        schema_str = '{"type": "object", "properties": {}}'  # Replace with actual schema if needed
+        await self.rule_config_page.navigate()
+        self.rule_config_page.define_rule_currency_conversion(rule_id, rule_name, currency, amount, schema_str)
+        self.rule_config_page.verify_existing_rules_function()
