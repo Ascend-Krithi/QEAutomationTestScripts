@@ -77,55 +77,37 @@ class TestRuleConfiguration:
             transfer_result = self.rule_page.validate_transfer_action()
             assert transfer_result is not None, f"Transfer action was not executed for week {week+1}"
 
-    def test_percentage_of_deposit_rule(self):
+    def test_define_ten_percent_deposit_rule_and_transfer(self):
         """
-        TC-FT-005: Define a rule for 10% of deposit, simulate deposit of 500 units, verify transfer of 50 units.
+        TC-FT-005: Define a rule for 10% of deposit action. Simulate deposit of 500 units. Validate that transfer of 50 units is executed.
         """
         rule_id = "TCFT005"
         rule_name = "TenPercentDepositRule"
-        trigger_type = "after_deposit"
-        action_type = "percentage_of_deposit"
-        percentage = 10
+        trigger = {"type": "after_deposit"}
+        action = {"type": "percentage_of_deposit", "percentage": 10}
+        conditions = []
+        # Step 1: Define rule
+        result, msg = self.rule_page.tc_define_10_percent_deposit_rule(rule_id, rule_name)
+        assert result, f"Rule was not accepted: {msg}"
+        # Step 2: Simulate deposit
         deposit_amount = 500
         expected_transfer = 50
-        # Step 1: Define the rule
-        self.rule_page.define_rule(rule_id, rule_name, trigger_type, action_type, percentage=percentage)
-        # Step 2: Validate rule acceptance
-        success_message = self.rule_page.validate_success_message()
-        assert success_message is not None and 'accepted' in success_message.lower(), "Rule was not accepted"
-        # Step 3: Simulate deposit
-        self.rule_page.simulate_deposit(deposit_amount)
-        # Step 4: Verify transfer
-        self.rule_page.verify_transfer(expected_transfer)
+        result, msg = self.rule_page.tc_simulate_deposit_and_verify_transfer(deposit_amount, expected_transfer)
+        assert result, f"Transfer was not executed as expected: {msg}"
 
-    def test_currency_conversion_rule_and_existing_rule(self):
+    def test_define_currency_conversion_rule_and_verify_existing(self):
         """
-        TC-FT-006: Define a rule with a new, future rule type ('currency_conversion'), verify acceptance or graceful rejection, and verify existing rules continue to execute as before.
+        TC-FT-006: Define a rule with future rule type 'currency_conversion' (currency: EUR), fixed amount 100. System should accept or gracefully reject with a clear message, without affecting existing rules. Verify existing rules continue to execute as before.
         """
         rule_id = "TCFT006"
         rule_name = "CurrencyConversionRule"
-        trigger_type = "currency_conversion"
-        action_type = "fixed_amount"
-        currency = "EUR"
-        amount = 100
-        # Step 1: Define the future rule type
-        self.rule_page.define_rule(rule_id, rule_name, trigger_type, action_type, currency=currency, amount=amount)
-        # Step 2: Validate acceptance or graceful rejection
-        try:
-            success_message = self.rule_page.validate_success_message()
-            assert success_message is not None and ('accepted' in success_message.lower() or 'rejected' in success_message.lower()), "System did not provide clear acceptance/rejection message"
-        except Exception:
-            error_message = self.rule_page.validate_error_message()
-            assert error_message is not None and len(error_message) > 0, "System did not provide error feedback for future rule type"
-        # Step 3: Verify existing rules continue to execute
-        # Re-use TC-FT-005 logic
-        rule_id2 = "TCFT005"
-        rule_name2 = "TenPercentDepositRule"
-        trigger_type2 = "after_deposit"
-        action_type2 = "percentage_of_deposit"
-        percentage2 = 10
-        deposit_amount2 = 500
-        expected_transfer2 = 50
-        self.rule_page.define_rule(rule_id2, rule_name2, trigger_type2, action_type2, percentage=percentage2)
-        self.rule_page.simulate_deposit(deposit_amount2)
-        self.rule_page.verify_transfer(expected_transfer2)
+        trigger = {"type": "currency_conversion", "currency": "EUR"}
+        action = {"type": "fixed_amount", "amount": 100}
+        conditions = []
+        # Step 1: Define future rule type
+        result, msg = self.rule_page.tc_define_currency_conversion_rule(rule_id, rule_name)
+        # Accept or gracefully reject
+        assert result or "gracefully" in msg.lower() or "error" in msg.lower(), f"System did not handle future rule gracefully: {msg}"
+        # Step 2: Verify existing rules
+        result, msg = self.rule_page.tc_verify_existing_rules()
+        assert result, f"Existing rules did not execute as expected: {msg}"
