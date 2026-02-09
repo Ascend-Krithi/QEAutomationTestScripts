@@ -58,28 +58,10 @@ class TestRuleConfiguration:
         trigger = {"type": "manual"}
         condition = {"type": "amount", "operator": "==", "value": 1}
         action = {"type": "transfer", "account": "G", "amount": 1}
-        page.prepare_minimum_rule_schema(trigger, condition, action)
-        page.submit_rule()
-        rule_management = RuleManagementPage(driver)
-        assert rule_management.verify_rule_creation("TC_SCRUM158_07"), "Rule was not created successfully for minimal schema TC_SCRUM158_07"
+        page.create_rule_minimal(trigger, condition, action)
+        page.verify_success_message("Rule is created successfully.")
 
     def test_create_recurring_interval_rule_TC_SCRUM158_03(self):
         ...
     def test_create_rule_missing_trigger_TC_SCRUM158_04(self):
         ...
-
-    def test_create_minimal_rule_TC_SCRUM158_07(self):
-        """
-        TC_SCRUM158_07:
-        1. Prepare a schema with only required fields (one trigger, one condition, one action).
-        2. Submit the schema and verify rule creation, ensuring the rule is accepted and created successfully.
-        """
-        driver = ... # Setup Selenium WebDriver instance
-        page = RuleConfigurationPage(driver)
-        trigger = {"type": "manual"}
-        condition = {"type": "amount", "operator": "==", "value": 1}
-        action = {"type": "transfer", "account": "G", "amount": 1}
-        page.prepare_minimum_rule_schema(trigger, condition, action)
-        page.submit_rule()
-        rule_management = RuleManagementPage(driver)
-        assert rule_management.verify_rule_creation("TC_SCRUM158_07"), "Rule was not created successfully for minimal schema TC_SCRUM158_07"
