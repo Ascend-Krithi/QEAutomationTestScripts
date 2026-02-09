@@ -83,3 +83,21 @@ class TestLogin(unittest.TestCase):
         result = self.login_page.login_with_case_variation('USER@EXAMPLE.COM', 'ValidPassword123')
         self.assertFalse(result['success'], msg="Login should fail if credentials do not match exactly (case sensitive).")
         self.assertNotEqual(result['error_message'], "", msg="Error message should be present if login fails due to case sensitivity.")
+
+    # TC_LOGIN_003: Empty username, valid password
+    def test_TC_LOGIN_003_empty_username_valid_password(self):
+        """TC_LOGIN_003: Navigate to login, leave username empty, enter valid password, click login, expect error 'Email/Username required'."""
+        self.login_page.navigate_to_login()
+        result = self.login_page.login_with_empty_username('ValidPass123')
+        self.assertFalse(result['success'], msg="User should NOT be logged in if username is empty.")
+        self.assertEqual(result['error_message'], result['expected_error'], msg="Error message should be 'Email/Username required'.")
+        self.assertTrue(self.login_page.is_logged_out(), msg="User should remain on login page after empty username attempt.")
+
+    # TC_LOGIN_004: Valid username, empty password
+    def test_TC_LOGIN_004_valid_username_empty_password(self):
+        """TC_LOGIN_004: Navigate to login, enter valid username, leave password empty, click login, expect error 'Password required'."""
+        self.login_page.navigate_to_login()
+        result = self.login_page.login_with_empty_password('user@example.com')
+        self.assertFalse(result['success'], msg="User should NOT be logged in if password is empty.")
+        self.assertEqual(result['error_message'], result['expected_error'], msg="Error message should be 'Password required'.")
+        self.assertTrue(self.login_page.is_logged_out(), msg="User should remain on login page after empty password attempt.")
