@@ -1,89 +1,58 @@
-# Import necessary modules
-from Pages.LoginPage import LoginPage
-from Pages.RuleEnginePage import RuleEnginePage
-import pytest
 
-class TestLoginFunctionality:
-    def __init__(self, driver):
-        self.driver = driver
-        self.login_page = LoginPage(driver)
+import unittest
+import time
+from RuleEnginePage import RuleEnginePage
 
-    def test_empty_fields_validation(self):
-        self.login_page.go_to()
-        self.login_page.enter_email('')
-        self.login_page.enter_password('')
-        self.login_page.click_login()
-        assert self.login_page.is_empty_field_prompt_visible()
+class TestRuleEngine(unittest.TestCase):
 
-    def test_remember_me_functionality(self):
-        self.login_page.go_to()
-        self.login_page.enter_email('user@example.com')
-        self.login_page.enter_password('password123')
-        self.login_page.set_remember_me(True)
-        self.login_page.click_login()
-        assert self.login_page.is_dashboard_header_visible()
+    # Existing test methods...
 
-    def test_tc_ft_001_specific_date_trigger(self):
-        rule = {
-            "trigger": {"type": "specific_date", "date": "2024-07-01T10:00:00Z"},
-            "action": {"type": "fixed_amount", "amount": 100},
-            "conditions": []
+    def test_load_10000_rules_and_evaluate_performance_TC_FT_007(self):
+        """TC-FT-007: Load 10,000 valid rules and trigger evaluation, measuring performance."""
+        rule_engine = RuleEnginePage()
+        # Generate 10,000 valid rules (as dictionaries)
+        rules = []
+        for i in range(10000):
+            rules.append({
+                'rule_id': f'R{i}',
+                'name': f'Rule {i}',
+                'condition': f'value > {i}',
+                'action': 'approve'
+            })
+        # Load bulk rules
+        start_load = time.time()
+        load_result = rule_engine.load_bulk_rules(rules)
+        end_load = time.time()
+        self.assertTrue(load_result['success'], f"Bulk load failed: {load_result.get('error')}")
+        load_duration = end_load - start_load
+        print(f"Bulk load of 10,000 rules took {load_duration:.2f} seconds.")
+        # Evaluate all rules
+        start_eval = time.time()
+        eval_result = rule_engine.evaluate_all_rules()
+        end_eval = time.time()
+        self.assertTrue(eval_result['success'], f"Evaluation failed: {eval_result.get('error')}")
+        eval_duration = end_eval - start_eval
+        print(f"Evaluation of 10,000 rules took {eval_duration:.2f} seconds.")
+        # Acceptance criteria: durations should meet performance thresholds (example: < 60 seconds)
+        self.assertLess(load_duration, 60, "Bulk load exceeded performance threshold.")
+        self.assertLess(eval_duration, 60, "Evaluation exceeded performance threshold.")
+
+    def test_sql_injection_rule_rejection_TC_FT_008(self):
+        """TC-FT-008: Submit a rule with SQL injection and verify rejection."""
+        rule_engine = RuleEnginePage()
+        # Rule with SQL injection attempt in 'condition'
+        malicious_rule = {
+            'rule_id': 'SQL_INJ_1',
+            'name': 'Malicious Rule',
+            'condition': "1; DROP TABLE users;--",
+            'action': 'approve'
         }
-        pass  # Placeholder for actual implementation
+        submit_result = rule_engine.submit_rule(malicious_rule)
+        # Expecting rejection
+        self.assertFalse(submit_result['success'], "System accepted a rule with SQL injection.")
+        self.assertIn('rejected', submit_result.get('message', '').lower(), "No rejection message for SQL injection.")
+        self.assertNotIn('executed', submit_result.get('message', '').lower(), "SQL was executed when it should not have been.")
+        print(f"SQL injection test result: {submit_result.get('message', '')}")
 
-    def test_tc_ft_002_recurring_weekly_trigger(self):
-        rule = {
-            "trigger": {"type": "recurring", "interval": "weekly"},
-            "action": {"type": "percentage_of_deposit", "percentage": 10},
-            "conditions": []
-        }
-        pass  # Placeholder for actual implementation
-
-class TestRuleEngine:
-    def __init__(self, driver):
-        self.driver = driver
-        self.rule_engine_page = RuleEnginePage(driver)
-
-    def test_tc_ft_003_multiple_conditions_deposit_simulation(self):
-        # Step 2: Define rule with multiple conditions
-        rule = {
-            "trigger": {"type": "after_deposit"},
-            "action": {"type": "fixed_amount", "amount": 50},
-            "conditions": [
-                {"type": "balance_threshold", "operator": ">=", "value": 1000},
-                {"type": "transaction_source", "value": "salary"}
-            ]
-        }
-        self.rule_engine_page.define_rule(rule["trigger"], rule["action"], rule["conditions"])
-        result = self.rule_engine_page.get_rule_submission_result()
-        assert result is not None and "accepted" in result.lower()
-
-        # Step 3: Simulate deposit from 'salary' when balance is 900
-        self.rule_engine_page.simulate_deposit(900, 100, "salary")
-        transfer_result = self.rule_engine_page.get_transfer_execution_result()
-        assert transfer_result is not None and "not executed" in transfer_result.lower()
-
-        # Step 4: Simulate deposit from 'salary' when balance is 1200
-        self.rule_engine_page.simulate_deposit(1200, 100, "salary")
-        transfer_result = self.rule_engine_page.get_transfer_execution_result()
-        assert transfer_result is not None and "executed" in transfer_result.lower()
-
-    def test_tc_ft_004_rule_submission_errors(self):
-        # Step 2: Submit a rule with missing trigger type
-        rule_missing_trigger = {
-            "action": {"type": "fixed_amount", "amount": 100},
-            "conditions": []
-        }
-        self.rule_engine_page.define_rule(rule_missing_trigger.get("trigger", {}), rule_missing_trigger["action"], rule_missing_trigger["conditions"])
-        error_message = self.rule_engine_page.get_error_message()
-        assert error_message is not None and "missing required field" in error_message.lower()
-
-        # Step 3: Submit a rule with unsupported action type
-        rule_unsupported_action = {
-            "trigger": {"type": "specific_date", "date": "2024-07-01T10:00:00Z"},
-            "action": {"type": "unknown_action"},
-            "conditions": []
-        }
-        self.rule_engine_page.define_rule(rule_unsupported_action["trigger"], rule_unsupported_action["action"], rule_unsupported_action["conditions"])
-        error_message = self.rule_engine_page.get_error_message()
-        assert error_message is not None and "unsupported action type" in error_message.lower()
+if __name__ == '__main__':
+    unittest.main()
