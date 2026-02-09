@@ -86,3 +86,17 @@ class TestRuleConfiguration:
         json_schema = '{"trigger": "balance_above", "conditions": [{"type": "balance", "threshold": 2000, "source": "bank", "operator": "greater_than"}, {"type": "transaction", "threshold": 500, "source": "atm", "operator": "less_than"}], "actions": [{"type": "transfer", "amount": 1000, "destination_account": "ACC987654321"}, {"type": "notify"}]}'
         success_message = self.page.create_rule(rule_id, rule_name, trigger_type, date_value, interval, after_deposit, conditions, actions, json_schema)
         assert 'success' in success_message.lower()
+
+    def test_TC_SCRUM158_05_invalid_trigger_rule(self):
+        """
+        Test Case TC_SCRUM158_05: Prepare a rule schema with an invalid trigger value and submit. Expect error about invalid value.
+        """
+        error_message = self.page.create_rule_with_invalid_trigger()
+        assert 'invalid' in error_message.lower() or 'unknown' in error_message.lower()
+
+    def test_TC_SCRUM158_06_missing_condition_param_rule(self):
+        """
+        Test Case TC_SCRUM158_06: Prepare a rule schema with a condition missing required parameters and submit. Expect error about incomplete condition.
+        """
+        error_message = self.page.create_rule_with_missing_condition_param()
+        assert 'missing' in error_message.lower() or 'required' in error_message.lower()
