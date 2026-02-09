@@ -13,7 +13,7 @@ class RuleConfigurationPage:
         self.driver = driver
         self.wait = WebDriverWait(driver, timeout)
 
-    # Locators from Locators.json
+    # Locators from Locators.json (or validated from previous implementation)
     rule_id_input = (By.ID, "rule-id-field")
     rule_name_input = (By.NAME, "rule-name")
     save_rule_button = (By.CSS_SELECTOR, "button[data-testid='save-rule-btn']")
@@ -42,52 +42,48 @@ class RuleConfigurationPage:
     def add_multiple_conditions(self, conditions):
         """
         Adds multiple conditions to the rule form.
-        conditions: list of dicts, e.g. [{"type": "balance_threshold", "operator": ">=", "value": 1000}, {"type": "transaction_source", "value": "salary"}]
+        conditions: list of dicts, e.g. [{"type": "amount", "operator": "==", "value": 1}]
         """
         for cond in conditions:
             self.wait.until(EC.element_to_be_clickable(self.add_condition_btn)).click()
             self.wait.until(EC.visibility_of_element_located(self.condition_type_dropdown)).send_keys(cond["type"])
             if "operator" in cond:
                 self.wait.until(EC.visibility_of_element_located(self.operator_dropdown)).send_keys(cond["operator"])
-            if cond["type"] == "balance_threshold":
-                self.wait.until(EC.visibility_of_element_located(self.balance_threshold_input)).send_keys(str(cond["value"]))
-            elif cond["type"] == "transaction_source":
-                self.wait.until(EC.visibility_of_element_located(self.transaction_source_dropdown)).send_keys(cond["value"])
+            self.wait.until(EC.visibility_of_element_located(self.balance_threshold_input)).send_keys(str(cond["value"]))
 
-    def simulate_deposit(self, balance, deposit, source):
+    def add_multiple_actions(self, actions):
         """
-        Simulates a deposit for testing rule execution. Placeholder for integration with DepositSimulationPage.
+        Adds multiple actions to the rule form.
+        actions: list of dicts, e.g. [{"type": "transfer", "account": "F1", "amount": 1}]
         """
-        # This method would interact with DepositSimulationPage if available
-        pass
+        for act in actions:
+            self.wait.until(EC.visibility_of_element_located(self.action_type_dropdown)).send_keys(act["type"])
+            self.wait.until(EC.visibility_of_element_located(self.destination_account_input)).send_keys(act["account"])
+            self.wait.until(EC.visibility_of_element_located(self.transfer_amount_input)).send_keys(str(act["amount"]))
 
-    def verify_rule_execution(self, expected_transfer):
+    def submit_rule(self):
         """
-        Verifies whether transfer was executed or not after deposit simulation.
-        expected_transfer: bool
+        Submits the rule and verifies creation.
         """
-        # Example: Check for success message or rule execution indicator
-        try:
-            success = self.wait.until(EC.visibility_of_element_located(self.success_message))
-            return expected_transfer in success.text.lower()
-        except Exception:
-            return False
-
-    def submit_rule_with_missing_trigger(self):
-        """
-        Submits a rule with missing trigger type and checks for error.
-        """
-        self.wait.until(EC.visibility_of_element_located(self.action_type_dropdown)).send_keys("fixed_amount")
-        self.wait.until(EC.visibility_of_element_located(self.transfer_amount_input)).send_keys("100")
         self.wait.until(EC.element_to_be_clickable(self.save_rule_button)).click()
 
-    def submit_rule_with_unsupported_action(self):
+    def verify_success_message(self, expected_text):
         """
-        Submits a rule with unsupported action type and checks for error.
+        Verifies the success message after rule submission.
         """
-        self.wait.until(EC.visibility_of_element_located(self.trigger_type_dropdown)).send_keys("specific_date")
-        self.wait.until(EC.visibility_of_element_located(self.action_type_dropdown)).send_keys("unknown_action")
-        self.wait.until(EC.element_to_be_clickable(self.save_rule_button)).click()
+        success_elem = self.wait.until(EC.visibility_of_element_located(self.success_message))
+        assert expected_text in success_elem.text, f"Expected success message '{expected_text}' not found."
+
+    def submit_rule_with_unsupported_trigger(self, schema):
+        """
+        Submits a rule with an unsupported trigger type and checks for error.
+        schema: dict representing rule schema
+        """
+        # Fill schema editor
+        editor = self.wait.until(EC.visibility_of_element_located(self.json_schema_editor))
+        editor.clear()
+        editor.send_keys(str(schema))
+        self.wait.until(EC.element_to_be_clickable(self.validate_schema_btn)).click()
 
     def verify_error_message(self, expected_error):
         """
@@ -96,22 +92,19 @@ class RuleConfigurationPage:
         error_elem = self.wait.until(EC.visibility_of_element_located(self.schema_error_message))
         assert expected_error in error_elem.text, f"Expected error message '{expected_error}' not found."
 
-    # TC_SCRUM158_07 functions
-    def prepare_minimum_rule_schema(self, trigger, condition, action):
+    def create_rule_with_max_conditions_actions(self, trigger, conditions, actions):
         """
-        Prepares a rule schema with only required fields (one trigger, one condition, one action).
+        Creates a rule with maximum allowed conditions/actions.
         """
         self.wait.until(EC.visibility_of_element_located(self.trigger_type_dropdown)).send_keys(trigger["type"])
-        self.wait.until(EC.element_to_be_clickable(self.add_condition_btn)).click()
-        self.wait.until(EC.visibility_of_element_located(self.condition_type_dropdown)).send_keys(condition["type"])
-        self.wait.until(EC.visibility_of_element_located(self.operator_dropdown)).send_keys(condition["operator"])
-        self.wait.until(EC.visibility_of_element_located(self.balance_threshold_input)).send_keys(str(condition["value"]))
-        self.wait.until(EC.visibility_of_element_located(self.action_type_dropdown)).send_keys(action["type"])
-        self.wait.until(EC.visibility_of_element_located(self.destination_account_input)).send_keys(action["account"])
-        self.wait.until(EC.visibility_of_element_located(self.transfer_amount_input)).send_keys(str(action["amount"]))
+        self.add_multiple_conditions(conditions)
+        self.add_multiple_actions(actions)
+        self.submit_rule()
 
-    def submit_rule(self):
+    def verify_rule_contains_max_items(self, expected_count):
         """
-        Submits the rule and verifies creation.
+        Verifies that the rule contains the maximum allowed conditions/actions.
         """
-        self.wait.until(EC.element_to_be_clickable(self.save_rule_button)).click()
+        # Example: Could check rule summary or backend (UI check for count)
+        rule_summary = self.driver.find_element(By.ID, "rule-summary")
+        assert str(expected_count) in rule_summary.text, f"Expected {expected_count} items in rule, found: {rule_summary.text}"
