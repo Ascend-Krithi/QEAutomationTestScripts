@@ -20,6 +20,12 @@ class RuleConfigurationPage:
         rule_name_input.clear()
         rule_name_input.send_keys(rule_name)
 
+    def set_description(self, description):
+        # Assume description field is present with locator 'name=description'
+        description_input = self.wait.until(EC.visibility_of_element_located((By.NAME, 'description')))
+        description_input.clear()
+        description_input.send_keys(description)
+
     def save_rule(self):
         save_btn = self.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-testid='save-rule-btn']")))
         save_btn.click()
@@ -74,6 +80,12 @@ class RuleConfigurationPage:
         dropdown.send_keys(operator)
         dropdown.send_keys(Keys.RETURN)
 
+    def set_condition_value(self, value):
+        # Generic method to set value for a condition
+        value_input = self.wait.until(EC.visibility_of_element_located((By.NAME, 'condition-value')))
+        value_input.clear()
+        value_input.send_keys(str(value))
+
     # --- Actions ---
     def select_action_type(self, action_type):
         dropdown = self.wait.until(EC.element_to_be_clickable((By.ID, 'action-type-select')))
@@ -123,3 +135,29 @@ class RuleConfigurationPage:
         # expected: dict with keys 'trigger', 'condition', 'action'
         # Implement detailed checks as needed
         pass
+
+    # --- Security & Error Handling ---
+    def get_error_message(self):
+        # Generic method to fetch error message after failed save
+        try:
+            return self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "[data-testid='error-feedback-text']"))).text
+        except Exception:
+            return None
+
+    def verify_security_log_entry(self, threat_type, rule_id=None):
+        # Placeholder: Would require DB access or API call. Here, simulate by checking UI if exposed.
+        # If not exposed, this method would be implemented in API test layer.
+        pass
+
+    # --- Limits & Performance ---
+    def verify_trigger_limit(self, trigger_count, max_limit=10):
+        assert trigger_count <= max_limit, f"Trigger count {trigger_count} exceeds maximum allowed {max_limit}"
+
+    def verify_condition_limit(self, condition_count, max_limit=20):
+        assert condition_count <= max_limit, f"Condition count {condition_count} exceeds maximum allowed {max_limit}"
+
+    def verify_action_limit(self, action_count, max_limit=20):
+        assert action_count <= max_limit, f"Action count {action_count} exceeds maximum allowed {max_limit}"
+
+    def measure_rule_creation_time(self, start_time):
+        return time.time() - start_time
