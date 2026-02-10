@@ -1,0 +1,11 @@
+{
+  "RuleConfigurationPage": {
+    "rule_name_input": "//input[@name='rule_name']",
+    "description_input": "//textarea[@name='description']",
+    "trigger_list": "//div[@id='trigger-list']",
+    "condition_list": "//div[@id='condition-list']",
+    "action_list": "//div[@id='action-list']",
+    "submit_button": "//button[@id='submit-rule']",
+    "security_audit_log_table": "//table[@id='security_audit_log']"
+  }
+}
