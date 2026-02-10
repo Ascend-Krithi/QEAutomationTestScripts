@@ -128,3 +128,11 @@ class RuleConfigurationPage:
 
     def get_schema_error_message(self):
         return self.wait.until(EC.visibility_of_element_located(self.SCHEMA_ERROR_MESSAGE)).text
+
+    # --- New methods for test cases ---
+    def create_rule(self, rule_id, rule_name, triggers, conditions, actions):
+        self.enter_rule_id(rule_id)
+        self.enter_rule_name(rule_name)
+        # Logic for triggers, conditions, actions (expand as needed)
+        self.save_rule()
+        # Optionally, validate response or UI feedback
