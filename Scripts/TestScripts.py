@@ -82,3 +82,116 @@ class TestRuleConfiguration:
 
         # Step 5: Check rule execution log
         # (Assume log check method or add log check code as needed)
+
+    def test_TC_SCRUM_387_005(self):
+        """
+        Test rule creation error scenarios:
+        - missing rule_id
+        - empty triggers
+        - malformed condition
+        - validation error details
+        """
+        # Step 1: Attempt to create rule without rule_id
+        self.rule_page.enter_rule_id('')  # missing rule_id
+        self.rule_page.enter_rule_name('Invalid Rule - Missing ID')
+        self.rule_page.select_trigger_type('specific_date')
+        self.rule_page.set_specific_date_trigger('2024-12-31')
+        self.rule_page.validate_json_schema()
+        self.rule_page.add_condition()
+        self.rule_page.select_condition_type('balance_threshold')
+        self.rule_page.set_balance_threshold(500)
+        self.rule_page.select_operator('greater_than')
+        self.rule_page.select_action_type('fixed_transfer')
+        self.rule_page.set_transfer_amount(100)
+        self.rule_page.set_destination_account('SAV-001')
+        self.rule_page.save_rule()
+        error_msg = self.rule_page.get_error_message()
+        assert error_msg is not None
+        assert 'rule_id' in error_msg or 'Mandatory' in error_msg
+
+        # Step 2: Attempt to create rule with empty triggers
+        self.rule_page.enter_rule_id('RULE-387-005-2')
+        self.rule_page.enter_rule_name('Invalid Rule - Empty Trigger')
+        self.rule_page.select_trigger_type('')  # empty trigger
+        self.rule_page.set_specific_date_trigger('')
+        self.rule_page.validate_json_schema()
+        self.rule_page.add_condition()
+        self.rule_page.select_condition_type('balance_threshold')
+        self.rule_page.set_balance_threshold(500)
+        self.rule_page.select_operator('greater_than')
+        self.rule_page.select_action_type('fixed_transfer')
+        self.rule_page.set_transfer_amount(100)
+        self.rule_page.set_destination_account('SAV-001')
+        self.rule_page.save_rule()
+        error_msg = self.rule_page.get_error_message()
+        assert error_msg is not None
+        assert 'trigger' in error_msg or 'Mandatory' in error_msg
+
+        # Step 3: Attempt to create rule with malformed condition
+        self.rule_page.enter_rule_id('RULE-387-005-3')
+        self.rule_page.enter_rule_name('Invalid Rule - Malformed Condition')
+        self.rule_page.select_trigger_type('specific_date')
+        self.rule_page.set_specific_date_trigger('2024-12-31')
+        self.rule_page.validate_json_schema()
+        self.rule_page.add_condition()
+        self.rule_page.select_condition_type('balance_threshold')
+        self.rule_page.set_balance_threshold('not_a_number')  # malformed
+        self.rule_page.select_operator('greater_than')
+        self.rule_page.select_action_type('fixed_transfer')
+        self.rule_page.set_transfer_amount(100)
+        self.rule_page.set_destination_account('SAV-001')
+        self.rule_page.save_rule()
+        error_msg = self.rule_page.get_error_message()
+        assert error_msg is not None
+        assert 'condition' in error_msg or 'invalid' in error_msg or 'number' in error_msg
+
+        # Step 4: Validate error details returned by API/UI
+        # (Assume get_error_details returns structured error info)
+        error_details = self.rule_page.get_error_details()
+        assert error_details is not None
+        assert 'validation' in error_details or 'details' in error_details
+
+    def test_TC_SCRUM_387_006(self):
+        """
+        Test rule creation error scenarios:
+        - type mismatch
+        - invalid array
+        - validation error details
+        """
+        # Step 1: Attempt to create rule with type mismatch (e.g., string instead of integer for balance)
+        self.rule_page.enter_rule_id('RULE-387-006-1')
+        self.rule_page.enter_rule_name('Invalid Rule - Type Mismatch')
+        self.rule_page.select_trigger_type('specific_date')
+        self.rule_page.set_specific_date_trigger('2024-12-31')
+        self.rule_page.validate_json_schema()
+        self.rule_page.add_condition()
+        self.rule_page.select_condition_type('balance_threshold')
+        self.rule_page.set_balance_threshold('five_hundred')  # type mismatch
+        self.rule_page.select_operator('greater_than')
+        self.rule_page.select_action_type('fixed_transfer')
+        self.rule_page.set_transfer_amount(100)
+        self.rule_page.set_destination_account('SAV-001')
+        self.rule_page.save_rule()
+        error_msg = self.rule_page.get_error_message()
+        assert error_msg is not None
+        assert 'type' in error_msg or 'invalid' in error_msg or 'number' in error_msg
+
+        # Step 2: Attempt to create rule with invalid array (e.g., empty conditions array)
+        self.rule_page.enter_rule_id('RULE-387-006-2')
+        self.rule_page.enter_rule_name('Invalid Rule - Empty Conditions Array')
+        self.rule_page.select_trigger_type('specific_date')
+        self.rule_page.set_specific_date_trigger('2024-12-31')
+        self.rule_page.validate_json_schema()
+        # Do not add any condition
+        self.rule_page.select_action_type('fixed_transfer')
+        self.rule_page.set_transfer_amount(100)
+        self.rule_page.set_destination_account('SAV-001')
+        self.rule_page.save_rule()
+        error_msg = self.rule_page.get_error_message()
+        assert error_msg is not None
+        assert 'conditions' in error_msg or 'array' in error_msg or 'empty' in error_msg
+
+        # Step 3: Validate error details returned by API/UI
+        error_details = self.rule_page.get_error_details()
+        assert error_details is not None
+        assert 'validation' in error_details or 'details' in error_details
