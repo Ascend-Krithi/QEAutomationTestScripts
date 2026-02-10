@@ -25,7 +25,70 @@ class TestRuleConfiguration:
         self.rule_page = RuleConfigurationPage(page)
 
     async def test_create_and_verify_rule_TC_SCRUM_158_001(self):
-        pass
+        '''
+        Implements all steps for TC-SCRUM-158-001:
+        1. Prepare rule JSON with two triggers, two conditions, two actions, and metadata.
+        2. Submit to JSON Schema validation endpoint.
+        3. Serialize to JSON string and verify.
+        4. Deserialize and verify.
+        5. Submit to evaluation service and measure response time.
+        6. Verify response time <= 200ms.
+        7. Query DB to verify storage.
+        8. Perform security validation with malicious payloads.
+        9. Retrieve rule via API and verify.
+        '''
+        rule_json = {
+            "rule_id": "RULE-001",
+            "rule_name": "Multi-Condition Savings Rule",
+            "enabled": True,
+            "priority": 1,
+            "user_id": "USER-12345",
+            "triggers": [
+                {"type": "specific_date", "date": "2024-06-01T00:00:00Z"},
+                {"type": "recurring_interval", "interval": "MONTHLY", "day_of_month": 1}
+            ],
+            "conditions": [
+                {"type": "balance_threshold", "operator": "greater_than", "value": 1000.00, "currency": "USD"},
+                {"type": "transaction_source", "source_type": "DIRECT_DEPOSIT"}
+            ],
+            "actions": [
+                {"type": "fixed_amount", "amount": 50.00, "currency": "USD", "target_account": "savings_001"},
+                {"type": "percentage_of_deposit", "percentage": 10.0, "target_account": "investment_001"}
+            ]
+        }
+        # Step 1: Fill form and submit
+        self.rule_page.fill_rule_form(rule_json)
+        validation_status, validation_result = self.rule_page.validate_rule_schema(rule_json)
+        assert validation_status == 200, f"Validation endpoint returned {validation_status}"
+        assert validation_result.get('validation_result') == 'PASSED', f"Validation failed: {validation_result}"
+        # Step 2: Serialize
+        serialized = self.rule_page.serialize_rule(rule_json)
+        assert isinstance(serialized, str), "Serialization failed"
+        # Step 3: Deserialize
+        deserialized = self.rule_page.deserialize_rule(serialized)
+        assert deserialized == rule_json, "Deserialization did not match original"
+        # Step 4: Submit to evaluation service
+        auth_token = "BearerTokenStub"
+        eval_status, eval_result, processing_time = self.rule_page.submit_rule_to_evaluation_service(rule_json, auth_token)
+        assert eval_status == 201, f"Evaluation service returned {eval_status}"
+        assert processing_time <= 0.2 or float(processing_time) <= 0.2, f"Processing time exceeded 200ms: {processing_time}"
+        # Step 5: DB verification
+        db_result = self.rule_page.query_database_for_rule("RULE-001")
+        assert db_result, "Database did not return rule"
+        # Step 6: Security validation
+        malicious_payloads = [
+            {"rule_name": "<script>alert(1)</script>"},
+            {"conditions": [{"value": "1000 OR 1=1"}]},
+            {"actions": [{"parameter": "'; DROP TABLE rules;--"}]}
+        ]
+        for payload in malicious_payloads:
+            status, result = self.rule_page.perform_security_validation(payload)
+            assert status in [200, 400], f"Unexpected status for security validation: {status}"
+            assert not any(["vulnerability" in str(result).lower(), "error" in str(result).lower()]), "Security validation failed"
+        # Step 7: Retrieve via API
+        retrieve_status, retrieve_result = self.rule_page.retrieve_rule_via_api("RULE-001", auth_token)
+        assert retrieve_status == 200, f"Retrieve API returned {retrieve_status}"
+        assert retrieve_result.get("rule_id") == "RULE-001", "Rule ID mismatch in API retrieval"
 
     async def test_rule_execution_and_log_TC_SCRUM_158_002(self):
         pass
