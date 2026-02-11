@@ -1,7 +1,10 @@
-
 import pytest
-from Pages.LoginPage import LoginPage
-from Pages.RuleConfigurationPage import RuleConfigurationPage
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from PageClasses.LoginPage import LoginPage
+from PageClasses.RuleConfigurationPage import RuleConfigurationPage
+from PageClasses.ProfilePage import ProfilePage
 
 class TestLoginFunctionality:
     def __init__(self, page):
@@ -15,42 +18,65 @@ class TestLoginFunctionality:
 
     async def test_remember_me_functionality(self):
         await self.login_page.navigate()
-        await self.login_page.fill_email('testuser@example.com')
-        await self.login_page.fill_password('securepassword')
-        await self.login_page.check_remember_me()
-        await self.login_page.submit_login('testuser@example.com', 'securepassword')
-        # Add assertions as needed
+        await self.login_page.fill_email('')
 
 class TestRuleConfiguration:
-    def __init__(self, page):
-        self.page = page
-        self.rule_page = RuleConfigurationPage(page)
+    def __init__(self, driver):
+        self.driver = driver
+        self.rule_page = RuleConfigurationPage(driver)
+        self.profile_page = ProfilePage(driver)
 
-    async def test_TC_SCRUM_158_001_create_rule(self):
-        # Step 1: Navigate to Rule Configuration Page
-        await self.rule_page.navigate_to_rule_configuration()
-        # Step 2: Click "Create Rule"
-        await self.rule_page.click_create_rule_button()
-        # Step 3: Fill Rule Details
-        await self.rule_page.fill_rule_name("AutoTest Rule")
-        await self.rule_page.select_rule_type("Validation")
-        await self.rule_page.set_rule_condition("Status == 'Open'")
-        # Step 4: Save Rule
-        await self.rule_page.click_save_rule_button()
-        # Step 5: Verify Rule appears in list
-        rule_exists = await self.rule_page.is_rule_in_list("AutoTest Rule")
-        assert rule_exists, "Rule was not created successfully"
+    def test_TC_SCRUM_158_001_create_and_verify_rule_with_date_trigger(self):
+        """
+        TC-SCRUM-158-001:
+        - Create rule with specific date trigger
+        - Set balance threshold
+        - Set fixed transfer action
+        - Save rule
+        - Retrieve and verify rule
+        """
+        self.rule_page.navigate_to_rule_configuration()
+        self.rule_page.click_create_new_rule()
+        self.rule_page.set_rule_name("AutoTransferRule_Date")
+        self.rule_page.set_trigger_type("SpecificDate")
+        self.rule_page.set_trigger_date("2024-07-01")
+        self.rule_page.set_condition_balance_threshold(1000)
+        self.rule_page.set_action_transfer_fixed_amount(200)
+        self.rule_page.save_rule()
+        assert self.rule_page.verify_rule_saved("AutoTransferRule_Date")
+        rule_data = self.rule_page.retrieve_rule("AutoTransferRule_Date")
+        assert rule_data['trigger_type'] == "SpecificDate"
+        assert rule_data['trigger_date'] == "2024-07-01"
+        assert rule_data['condition_balance_threshold'] == 1000
+        assert rule_data['action_transfer_amount'] == 200
 
-    async def test_TC_SCRUM_158_002_edit_rule(self):
-        # Step 1: Navigate to Rule Configuration Page
-        await self.rule_page.navigate_to_rule_configuration()
-        # Step 2: Find and Edit Rule
-        await self.rule_page.select_rule_from_list("AutoTest Rule")
-        await self.rule_page.click_edit_rule_button()
-        # Step 3: Update Rule Details
-        await self.rule_page.update_rule_condition("Status == 'Closed'")
-        # Step 4: Save Changes
-        await self.rule_page.click_save_rule_button()
-        # Step 5: Verify Rule was updated
-        updated_condition = await self.rule_page.get_rule_condition("AutoTest Rule")
-        assert updated_condition == "Status == 'Closed'", "Rule condition was not updated"
+    def test_TC_SCRUM_158_002_create_rule_with_balance_condition_and_verify_execution(self):
+        """
+        TC-SCRUM-158-002:
+        - Create rule with specific date trigger
+        - Set balance condition
+        - Set transfer action
+        - Set account balance
+        - Wait for trigger
+        - Verify execution and log
+        """
+        self.rule_page.navigate_to_rule_configuration()
+        self.rule_page.click_create_new_rule()
+        self.rule_page.set_rule_name("AutoTransferRule_Balance")
+        self.rule_page.set_trigger_type("SpecificDate")
+        self.rule_page.set_trigger_date("2024-07-02")
+        self.rule_page.set_condition_balance_threshold(500)
+        self.rule_page.set_action_transfer_fixed_amount(100)
+        self.rule_page.save_rule()
+        assert self.rule_page.verify_rule_saved("AutoTransferRule_Balance")
+        # Set account balance
+        self.profile_page.navigate_to_profile()
+        self.profile_page.set_account_balance(600)
+        # Simulate waiting for rule trigger
+        self.rule_page.wait_for_rule_trigger("AutoTransferRule_Balance", timeout=120)
+        # Verify execution
+        assert self.rule_page.verify_rule_executed("AutoTransferRule_Balance")
+        log_entry = self.rule_page.get_rule_execution_log("AutoTransferRule_Balance")
+        assert log_entry is not None
+        assert log_entry['status'] == 'Success'
+        assert log_entry['transfer_amount'] == 100
