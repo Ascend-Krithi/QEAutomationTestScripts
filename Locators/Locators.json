@@ -1,34 +1,36 @@
 {
-  "RuleConfigurationPage": {
-    "ruleForm": {
-      "ruleIdInput": "id=rule-id-field",
-      "ruleNameInput": "name=rule-name",
-      "saveRuleButton": "button[data-testid='save-rule-btn']"
+  "LoginPage": {
+    "usernameField": "name=username",
+    "passwordField": "name=password",
+    "loginButton": "css=input[value='Log In']"
+  },
+  "Navigation": {
+    "billPayLink": "link=Bill Pay",
+    "accountOverviewLink": "link=Accounts Overview"
+  },
+  "BillPayPage": {
+    "form": {
+      "payeeName": "name=payee.name",
+      "address": "name=payee.address.street",
+      "city": "name=payee.address.city",
+      "state": "name=payee.address.state",
+      "zipCode": "name=payee.address.zipCode",
+      "phoneNumber": "name=payee.phoneNumber",
+      "accountNumber": "name=payee.accountNumber",
+      "verifyAccountNumber": "name=verifyAccount",
+      "amount": "name=amount",
+      "fromAccountId": "name=fromAccountId",
+      "sendPaymentButton": "css=input[value='Send Payment']"
     },
-    "triggers": {
-      "triggerTypeDropdown": "id=trigger-type-select",
-      "datePicker": "input[type='date']",
-      "recurringIntervalInput": "id=interval-value",
-      "afterDepositToggle": "id=trigger-after-deposit"
-    },
-    "conditions": {
-      "addConditionBtn": "id=add-condition-link",
-      "conditionTypeDropdown": "select.condition-type",
-      "balanceThresholdInput": "input[name='balance-limit']",
-      "transactionSourceDropdown": "id=source-provider-select",
-      "operatorDropdown": "css=.condition-operator-select"
-    },
-    "actions": {
-      "actionTypeDropdown": "id=action-type-select",
-      "transferAmountInput": "name=fixed-amount",
-      "percentageInput": "id=deposit-percentage",
-      "destinationAccountInput": "id=target-account-id"
-    },
-    "validation": {
-      "jsonSchemaEditor": "css=.monaco-editor",
-      "validateSchemaBtn": "id=btn-verify-json",
-      "successMessage": ".alert-success",
-      "schemaErrorMessage": "[data-testid='error-feedback-text']"
+    "confirmation": {
+      "successMessage": "id=billpayResult",
+      "confPayeeName": "id=payeeName",
+      "confAmount": "id=amount",
+      "confFromAccount": "id=fromAccountId"
     }
+  },
+  "AccountActivityPage": {
+    "transactionTable": "id=transactionTable",
+    "latestTransaction": "css=#transactionTable tbody tr:first-child"
   }
 }
