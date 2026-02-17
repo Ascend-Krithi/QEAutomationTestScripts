@@ -127,3 +127,140 @@ class TestBillPay:
             assert not bill_pay_page.is_success_message_displayed(), 'Payment should not be processed.'
         finally:
             driver.quit()
+
+    # TC-15483-007: Invalid zip, phone, negative, non-numeric, and excessive decimal amount
+    def test_bill_pay_invalid_fields(self):
+        driver = webdriver.Chrome()
+        try:
+            login_page = LoginPage(driver)
+            login_page.enter_username('validuser')
+            login_page.enter_password('validpass123')
+            login_page.click_login()
+
+            navigation = Navigation(driver)
+            navigation.go_to_bill_pay()
+
+            bill_pay_page = BillPayPage(driver)
+            # Invalid zip code
+            bill_pay_page.fill_payee_info(
+                name='Invalid Zip Payee',
+                address='123 Test St',
+                city='Springfield',
+                state='IL',
+                zip_code='ABCDE',
+                phone='217-555-0700'
+            )
+            bill_pay_page.enter_account_numbers('12345', '12345')
+            bill_pay_page.enter_amount(100.00)
+            bill_pay_page.select_from_account('13344')
+            bill_pay_page.click_send_payment()
+            assert bill_pay_page.is_zip_code_error_displayed(), 'Zip code validation error not displayed.'
+            assert not bill_pay_page.is_success_message_displayed(), 'Payment should not be processed for invalid zip.'
+
+            # Invalid phone number
+            bill_pay_page.fill_payee_info(
+                name='Invalid Phone Payee',
+                address='123 Test St',
+                city='Springfield',
+                state='IL',
+                zip_code='62707',
+                phone='PHONE123'
+            )
+            bill_pay_page.enter_account_numbers('12345', '12345')
+            bill_pay_page.enter_amount(100.00)
+            bill_pay_page.select_from_account('13344')
+            bill_pay_page.click_send_payment()
+            assert bill_pay_page.is_phone_error_displayed(), 'Phone number validation error not displayed.'
+            assert not bill_pay_page.is_success_message_displayed(), 'Payment should not be processed for invalid phone.'
+
+            # Negative amount
+            bill_pay_page.fill_payee_info(
+                name='Negative Amount Payee',
+                address='123 Test St',
+                city='Springfield',
+                state='IL',
+                zip_code='62707',
+                phone='217-555-0701'
+            )
+            bill_pay_page.enter_account_numbers('12345', '12345')
+            bill_pay_page.enter_amount(-100.00)
+            bill_pay_page.select_from_account('13344')
+            bill_pay_page.click_send_payment()
+            assert bill_pay_page.is_amount_error_displayed(), 'Negative amount error not displayed.'
+            assert not bill_pay_page.is_success_message_displayed(), 'Payment should not be processed for negative amount.'
+
+            # Non-numeric amount
+            bill_pay_page.fill_payee_info(
+                name='NonNumeric Amount Payee',
+                address='123 Test St',
+                city='Springfield',
+                state='IL',
+                zip_code='62707',
+                phone='217-555-0702'
+            )
+            bill_pay_page.enter_account_numbers('12345', '12345')
+            bill_pay_page.enter_amount('abc')
+            bill_pay_page.select_from_account('13344')
+            bill_pay_page.click_send_payment()
+            assert bill_pay_page.is_amount_error_displayed(), 'Non-numeric amount error not displayed.'
+            assert not bill_pay_page.is_success_message_displayed(), 'Payment should not be processed for non-numeric amount.'
+
+            # Amount with more than 2 decimals
+            bill_pay_page.fill_payee_info(
+                name='Excessive Decimal Payee',
+                address='123 Test St',
+                city='Springfield',
+                state='IL',
+                zip_code='62707',
+                phone='217-555-0703'
+            )
+            bill_pay_page.enter_account_numbers('12345', '12345')
+            bill_pay_page.enter_amount(100.123)
+            bill_pay_page.select_from_account('13344')
+            bill_pay_page.click_send_payment()
+            assert bill_pay_page.is_amount_error_displayed(), 'Excessive decimal amount error not displayed.'
+            assert not bill_pay_page.is_success_message_displayed(), 'Payment should not be processed for excessive decimals.'
+        finally:
+            driver.quit()
+
+    # TC-15483-008: Unauthorized access and session timeout
+    def test_bill_pay_session_timeout_and_unauthorized(self):
+        driver = webdriver.Chrome()
+        try:
+            # Attempt to access Bill Pay without login
+            navigation = Navigation(driver)
+            navigation.go_to_bill_pay()
+            login_page = LoginPage(driver)
+            assert login_page.is_login_page_displayed(), 'Should redirect to login when accessing Bill Pay unauthenticated.'
+
+            # Login and access Bill Pay
+            login_page.enter_username('validuser')
+            login_page.enter_password('validpass123')
+            login_page.click_login()
+
+            navigation.go_to_bill_pay()
+            bill_pay_page = BillPayPage(driver)
+
+            # Simulate session timeout by clearing cookies
+            driver.delete_all_cookies()
+
+            bill_pay_page.fill_payee_info(
+                name='Timeout Payee',
+                address='123 Test St',
+                city='Springfield',
+                state='IL',
+                zip_code='62708',
+                phone='217-555-0800'
+            )
+            bill_pay_page.enter_account_numbers('12345', '12345')
+            bill_pay_page.enter_amount(100.00)
+            bill_pay_page.select_from_account('13344')
+            bill_pay_page.click_send_payment()
+
+            assert bill_pay_page.is_session_expired_error_displayed(), 'Session expired error not displayed.'
+            assert not bill_pay_page.is_success_message_displayed(), 'Payment should not be processed after session timeout.'
+
+            account_activity_page = AccountActivityPage(driver)
+            assert not account_activity_page.verify_latest_transaction('Timeout Payee', 100.00), 'Transaction should not be recorded after session timeout.'
+        finally:
+            driver.quit()
