@@ -73,3 +73,77 @@ class TestBillPayEndToEnd:
         await self.bill_pay_page.submit_payment()
         error_message = await self.bill_pay_page.get_error_message()
         assert error_message == 'Insufficient funds'
+
+    async def test_account_numbers_mismatch(self):
+        # TC-SCRUM-15483-003: Enter valid payee details, enter mismatched account and verify account, submit, expect error.
+        await self.login_page.navigate()
+        await self.login_page.submit_login('valid_user', 'valid_password')
+        assert await self.account_overview_page.is_displayed()
+        await self.bill_pay_page.navigate()
+        await self.bill_pay_page.enter_payee_name('Electric Company')
+        await self.bill_pay_page.enter_address('123 Main St')
+        await self.bill_pay_page.enter_city('NY')
+        await self.bill_pay_page.enter_state('NY')
+        await self.bill_pay_page.enter_zip_code('10001')
+        await self.bill_pay_page.enter_phone_number('555-1234567')
+        await self.bill_pay_page.enter_account_number('123456789')
+        await self.bill_pay_page.enter_verify_account_number('987654321')
+        await self.bill_pay_page.enter_amount('50.00')
+        await self.bill_pay_page.select_from_account('Account with sufficient balance')
+        await self.bill_pay_page.click_send_payment()
+        error_message = await self.bill_pay_page.get_success_message()
+        assert 'account numbers don\'t match' in error_message.lower() or 'error' in error_message.lower()
+        assert await self.bill_pay_page.is_on_bill_pay_page()
+
+    async def test_mandatory_field_validation(self):
+        # TC-SCRUM-15483-004: Leave each mandatory field empty one at a time, submit, expect error and highlight.
+        mandatory_fields = [
+            ('payee_name', ''),
+            ('address', '123 Main St'),
+            ('city', 'NY'),
+            ('state', 'NY'),
+            ('zip_code', '10001'),
+            ('phone_number', '555-1234567'),
+            ('account_number', '987654321'),
+            ('amount', '50.00')
+        ]
+        for i, (field, value) in enumerate(mandatory_fields):
+            await self.login_page.navigate()
+            await self.login_page.submit_login('valid_user', 'valid_password')
+            assert await self.account_overview_page.is_displayed()
+            await self.bill_pay_page.navigate()
+            # Fill all fields with valid data
+            if field != 'payee_name': await self.bill_pay_page.enter_payee_name('Electric Company')
+            else: await self.bill_pay_page.enter_payee_name('')
+            if field != 'address': await self.bill_pay_page.enter_address('123 Main St')
+            else: await self.bill_pay_page.enter_address('')
+            if field != 'city': await self.bill_pay_page.enter_city('NY')
+            else: await self.bill_pay_page.enter_city('')
+            if field != 'state': await self.bill_pay_page.enter_state('NY')
+            else: await self.bill_pay_page.enter_state('')
+            if field != 'zip_code': await self.bill_pay_page.enter_zip_code('10001')
+            else: await self.bill_pay_page.enter_zip_code('')
+            if field != 'phone_number': await self.bill_pay_page.enter_phone_number('555-1234567')
+            else: await self.bill_pay_page.enter_phone_number('')
+            if field != 'account_number': await self.bill_pay_page.enter_account_number('987654321')
+            else: await self.bill_pay_page.enter_account_number('')
+            await self.bill_pay_page.enter_verify_account_number('987654321')
+            if field != 'amount': await self.bill_pay_page.enter_amount('50.00')
+            else: await self.bill_pay_page.enter_amount('')
+            await self.bill_pay_page.select_from_account('Account with sufficient balance')
+            await self.bill_pay_page.click_send_payment()
+            error_message = await self.bill_pay_page.get_success_message()
+            assert 'required' in error_message.lower() or 'error' in error_message.lower()
+            # Check highlight
+            locator_map = {
+                'payee_name': BillPayPage.PAYEE_NAME,
+                'address': BillPayPage.ADDRESS,
+                'city': BillPayPage.CITY,
+                'state': BillPayPage.STATE,
+                'zip_code': BillPayPage.ZIP_CODE,
+                'phone_number': BillPayPage.PHONE_NUMBER,
+                'account_number': BillPayPage.ACCOUNT_NUMBER,
+                'amount': BillPayPage.AMOUNT
+            }
+            assert self.bill_pay_page.is_field_highlighted(locator_map[field])
+            assert await self.bill_pay_page.is_on_bill_pay_page()
