@@ -1,4 +1,8 @@
-{Import necessary modules}
+import pytest
+from Pages.LoginPage import LoginPage
+from Pages.Navigation import Navigation
+from Pages.BillPayPage import BillPayPage
+from Pages.AccountActivityPage import AccountActivityPage
 
 class TestLoginFunctionality:
     def __init__(self, page):
@@ -12,85 +16,90 @@ class TestLoginFunctionality:
 
     async def test_remember_me_functionality(self):
         await self.login_page.navigate()
-        await self.login_page.fill_email('
+        await self.login_page.fill_email('testuser@example.com')
+        await self.login_page.fill_password('password123')
+        await self.login_page.toggle_remember_me(True)
+        await self.login_page.submit_login('testuser@example.com', 'password123')
+        # Further assertions would go here
 
-class TestParabankBillPay:
+class TestBillPay:
     def __init__(self, page):
         self.page = page
         self.login_page = LoginPage(page)
-        self.dashboard_page = DashboardPage(page)
+        self.navigation = Navigation(page)
         self.bill_pay_page = BillPayPage(page)
-        self.transactions_page = TransactionsPage(page)
+        self.account_activity_page = AccountActivityPage(page)
 
-    async def test_successful_bill_payment_and_transaction_history(self):
-        # TC-SCRUM-15483-001
-        # Step 1: Navigate to Parabank login page
+    async def test_successful_bill_pay_and_transaction_verification(self):
+        """
+        TC-SCRUM-15483-001: Valid login, Bill Pay with valid details, verify confirmation and transaction history.
+        """
+        # Step 1: Login
         await self.login_page.navigate()
-        # Step 2: Log in with valid credentials
-        await self.login_page.submit_login('valid_user', 'valid_password')
-        assert await self.dashboard_page.is_loaded()
-        # Step 3: Navigate to Bill Pay page
-        await self.dashboard_page.go_to_bill_pay()
-        assert await self.bill_pay_page.is_loaded()
-        # Step 4: Fill out bill pay form with valid data and submit
-        await self.bill_pay_page.fill_payee_information(
-            payee_name="John Doe",
-            address="123 Main St",
-            city="Springfield",
-            state="IL",
-            zip_code="62701",
-            phone="555-1234",
-            account="987654321",
-            verify_account="987654321",
-            amount="100.00",
-            from_account="123456789"
-        )
-        await self.bill_pay_page.submit_payment()
-        # Step 5: Verify payment confirmation is displayed
-        assert await self.bill_pay_page.is_payment_confirmed()
-        # Step 6: Navigate to transaction history
-        await self.dashboard_page.go_to_transactions()
-        assert await self.transactions_page.is_loaded()
-        # Step 7: Verify the new transaction appears in the list
-        transaction_found = await self.transactions_page.find_transaction(
-            description="Bill Payment to John Doe",
-            amount="100.00"
-        )
-        assert transaction_found
+        await self.login_page.submit_login('john_demo', 'demo_password1!')
+        assert await self.navigation.is_logged_in()
 
-    async def test_insufficient_funds_bill_payment(self):
-        # TC-SCRUM-15483-002
-        # Step 1: Navigate to Parabank login page
-        await self.login_page.navigate()
-        # Step 2: Log in with valid credentials
-        await self.login_page.submit_login('valid_user', 'valid_password')
-        assert await self.dashboard_page.is_loaded()
-        # Step 3: Navigate to Bill Pay page
-        await self.dashboard_page.go_to_bill_pay()
-        assert await self.bill_pay_page.is_loaded()
-        # Step 4: Fill out bill pay form with amount greater than balance and submit
-        await self.bill_pay_page.fill_payee_information(
-            payee_name="Jane Smith",
-            address="456 Elm St",
-            city="Springfield",
-            state="IL",
-            zip_code="62701",
-            phone="555-5678",
-            account="123123123",
-            verify_account="123123123",
-            amount="1000000.00",  # Exceeds available balance
-            from_account="123456789"
-        )
+        # Step 2: Navigate to Bill Pay
+        await self.navigation.go_to_bill_pay()
+
+        # Step 3: Fill Bill Pay form with valid details
+        await self.bill_pay_page.enter_payee_name('Acme Utilities')
+        await self.bill_pay_page.enter_address('123 Elm St')
+        await self.bill_pay_page.enter_city('Metropolis')
+        await self.bill_pay_page.enter_state('NY')
+        await self.bill_pay_page.enter_zip_code('10001')
+        await self.bill_pay_page.enter_phone('1234567890')
+        await self.bill_pay_page.enter_account_number('987654321')
+        await self.bill_pay_page.enter_verify_account('987654321')
+        await self.bill_pay_page.enter_amount('50.00')
+        await self.bill_pay_page.select_from_account('12345')
         await self.bill_pay_page.submit_payment()
-        # Step 5: Verify insufficient funds error is displayed
-        error_message = await self.bill_pay_page.get_error_message()
-        assert "Insufficient funds" in error_message
-        # Step 6: Navigate to transaction history
-        await self.dashboard_page.go_to_transactions()
-        assert await self.transactions_page.is_loaded()
-        # Step 7: Verify no transaction for the failed payment is recorded
-        transaction_found = await self.transactions_page.find_transaction(
-            description="Bill Payment to Jane Smith",
-            amount="1000000.00"
-        )
-        assert not transaction_found
+
+        # Step 4: Verify confirmation message
+        confirmation = await self.bill_pay_page.get_confirmation_message()
+        assert 'Bill Payment Complete' in confirmation
+
+        # Step 5: Go to Account Activity and verify transaction
+        await self.navigation.go_to_account_activity()
+        transactions = await self.account_activity_page.get_recent_transactions()
+        found = False
+        for txn in transactions:
+            if txn['description'] == 'Bill Payment to Acme Utilities' and txn['amount'] == '-50.00':
+                found = True
+                break
+        assert found, 'Transaction for Bill Payment not found in activity.'
+
+    async def test_bill_pay_insufficient_funds(self):
+        """
+        TC-SCRUM-15483-002: Valid login, Bill Pay with insufficient funds, expect error and no transaction.
+        """
+        # Step 1: Login
+        await self.login_page.navigate()
+        await self.login_page.submit_login('john_demo', 'demo_password1!')
+        assert await self.navigation.is_logged_in()
+
+        # Step 2: Navigate to Bill Pay
+        await self.navigation.go_to_bill_pay()
+
+        # Step 3: Fill Bill Pay form with amount greater than balance
+        await self.bill_pay_page.enter_payee_name('Acme Utilities')
+        await self.bill_pay_page.enter_address('123 Elm St')
+        await self.bill_pay_page.enter_city('Metropolis')
+        await self.bill_pay_page.enter_state('NY')
+        await self.bill_pay_page.enter_zip_code('10001')
+        await self.bill_pay_page.enter_phone('1234567890')
+        await self.bill_pay_page.enter_account_number('987654321')
+        await self.bill_pay_page.enter_verify_account('987654321')
+        await self.bill_pay_page.enter_amount('100000.00')  # Exceeds available balance
+        await self.bill_pay_page.select_from_account('12345')
+        await self.bill_pay_page.submit_payment()
+
+        # Step 4: Verify error message
+        error_msg = await self.bill_pay_page.get_error_message()
+        assert 'Insufficient funds' in error_msg
+
+        # Step 5: Go to Account Activity and verify no such transaction
+        await self.navigation.go_to_account_activity()
+        transactions = await self.account_activity_page.get_recent_transactions()
+        for txn in transactions:
+            assert not (txn['description'] == 'Bill Payment to Acme Utilities' and txn['amount'] == '-100000.00'), 'Erroneous transaction found despite insufficient funds.'
