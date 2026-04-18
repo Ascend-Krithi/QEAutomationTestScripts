@@ -63,4 +63,54 @@ def test_TC_SCRUM158_08(driver):
     '''Test Case TC_SCRUM158_08: Large metadata field test (10,000+ chars).'''
     schema = {
         "trigger": {"type": "manual"},
-        "metadata": "
+        "metadata": ""}
+
+@pytest.mark.tc_scrum158_05
+def test_TC_SCRUM158_05(driver):
+    '''
+    Test Case TC_SCRUM158_05: Schema with unsupported trigger type.
+    '''
+    schema = {
+        "trigger": {"type": "unsupported_type"},
+        "conditions": [{"type": "amount", "operator": "<", "value": 10}],
+        "actions": [{"type": "transfer", "account": "E", "amount": 10}]
+    }
+    page = RuleConfigurationPage(driver)
+    error_message = page.submit_schema_with_unsupported_trigger(str(schema))
+    assert "unsupported" in error_message.lower(), "Expected error message for unsupported trigger type"
+
+@pytest.mark.tc_scrum158_06
+def test_TC_SCRUM158_06(driver):
+    '''
+    Test Case TC_SCRUM158_06: Schema with maximum allowed conditions and actions.
+    '''
+    schema = {
+        "trigger": {"type": "manual"},
+        "conditions": [
+            {"type": "amount", "operator": "==", "value": 1},
+            {"type": "amount", "operator": "==", "value": 2},
+            {"type": "amount", "operator": "==", "value": 3},
+            {"type": "amount", "operator": "==", "value": 4},
+            {"type": "amount", "operator": "==", "value": 5},
+            {"type": "amount", "operator": "==", "value": 6},
+            {"type": "amount", "operator": "==", "value": 7},
+            {"type": "amount", "operator": "==", "value": 8},
+            {"type": "amount", "operator": "==", "value": 9},
+            {"type": "amount", "operator": "==", "value": 10}
+        ],
+        "actions": [
+            {"type": "transfer", "account": "F1", "amount": 1},
+            {"type": "transfer", "account": "F2", "amount": 2},
+            {"type": "transfer", "account": "F3", "amount": 3},
+            {"type": "transfer", "account": "F4", "amount": 4},
+            {"type": "transfer", "account": "F5", "amount": 5},
+            {"type": "transfer", "account": "F6", "amount": 6},
+            {"type": "transfer", "account": "F7", "amount": 7},
+            {"type": "transfer", "account": "F8", "amount": 8},
+            {"type": "transfer", "account": "F9", "amount": 9},
+            {"type": "transfer", "account": "F10", "amount": 10}
+        ]
+    }
+    page = RuleConfigurationPage(driver)
+    success_message = page.submit_schema_with_max_conditions_actions(str(schema))
+    assert "success" in success_message.lower(), "Expected success message for maximum allowed conditions/actions"
