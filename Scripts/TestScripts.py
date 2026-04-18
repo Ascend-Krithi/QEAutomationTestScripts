@@ -138,6 +138,24 @@ class TestTransferAPI(unittest.TestCase):
         self.auth_token = 'YOUR_AUTH_TOKEN'
         self.transfer_api = TransferAPIPage(self.base_url, self.auth_token)
 
+    def test_TC_158_01_valid_transfer_payload(self):
+        """
+        TestCase TC-158-01: Prepare a valid JSON payload for financial transfer with all required fields and submit to /transfer endpoint. Expect payload to be accepted and processed successfully.
+        """
+        result = self.transfer_api.submit_valid_transfer_payload()
+        self.assertEqual(result["status_code"], 200, f"Expected 200 OK, got {result['status_code']}")
+        self.assertTrue(result["success"], f"Expected success, got {result['error_message']}")
+        self.assertIn("result", result["response_json"], "Missing 'result' key in response JSON")
+        self.assertEqual(result["response_json"].get("result"), "success", f"Expected 'success', got {result['response_json'].get('result')}")
+
+    def test_TC_158_02_missing_destination_field(self):
+        """
+        TestCase TC-158-02: Prepare a JSON payload missing the 'destination' field and submit to /transfer endpoint. Expect payload to be rejected with appropriate error message.
+        """
+        result = self.transfer_api.submit_missing_destination_transfer_payload()
+        self.assertFalse(result["success"], "Expected rejection for missing 'destination' field")
+        self.assertIn("destination", result["error_message"], f"Expected error message about missing 'destination', got {result['error_message']}")
+
     def test_TC_158_03_minimum_amount_transfer(self):
         """
         TestCase TC-158-03: Prepare JSON payload with minimum allowed amount (0.01), submit, expect success.
