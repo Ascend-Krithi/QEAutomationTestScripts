@@ -59,5 +59,37 @@ class TestLogin(unittest.TestCase):
         # Assert error message 'Invalid credentials' is shown
         self.assertTrue(self.login_page.is_specific_error_message_displayed(["Invalid credentials"]), "Error message 'Invalid credentials' not shown")
 
+    def test_TC_LOGIN_005_special_character_credentials(self):
+        # Step 1: Navigate to login page
+        self.login_page.navigate_to_login('https://example.com/login')
+        # Step 2: Verify special character input in username and password fields
+        username = 'special_user!@#$/example.com'
+        password = 'P@$$w0rd!#'
+        self.assertTrue(self.login_page.verify_special_character_input(username, password), 'Special character input not accepted in username/password fields')
+        # Step 3: Click login
+        self.login_page.click_login()
+        # Step 4: Assert user is logged in or error is shown
+        self.assertTrue(self.login_page.is_logged_in() or self.login_page.is_specific_error_message_displayed(["Invalid credentials"]), 'User not logged in or error message not shown for special character credentials')
+
+    def test_TC_LOGIN_006_remember_me_session_persistence(self):
+        # Step 1: Navigate to login page
+        self.login_page.navigate_to_login('https://example.com/login')
+        # Step 2: Enter valid credentials and select 'Remember Me' checkbox
+        username = 'user@example.com'
+        password = 'ValidPassword123'
+        self.login_page.enter_credentials(username, password)
+        self.login_page.check_remember_me_checkbox()
+        self.assertTrue(self.login_page.is_remember_me_checked(), "'Remember Me' checkbox is not checked")
+        # Step 3: Click login
+        self.login_page.click_login()
+        # Step 4: Assert user is logged in
+        self.assertTrue(self.login_page.is_logged_in(), 'User was not logged in after selecting Remember Me')
+        # Step 5: Close and reopen browser, validate session persistence
+        def restart_browser_func():
+            self.driver.quit()
+            new_driver = webdriver.Chrome()
+            return new_driver
+        self.assertTrue(self.login_page.validate_session_persistence(restart_browser_func), 'Session did not persist after browser restart')
+
 if __name__ == '__main__':
     unittest.main()
