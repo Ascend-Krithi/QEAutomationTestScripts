@@ -89,6 +89,48 @@ class TestRuleConfiguration(unittest.TestCase):
         self.assertEqual(deposit_result['transferred'], expected_transferred, msg=f"Expected {expected_transferred}, got {deposit_result['transferred']}")
         self.assertEqual(deposit_result['status'], 'completed')
 
+    # TC-FT-003: Define rule with multiple conditions, simulate deposits, verify transfer
+    def test_TC_FT_003_rule_with_multiple_conditions_and_transfer_verification(self):
+        # Step 1: Define rule with multiple conditions
+        rule_id = 'RC003'
+        rule_name = 'Salary Transfer Rule'
+        trigger_type = 'after_deposit'
+        conditions = [
+            {"type": "balance_threshold", "operator": ">=", "value": 1000},
+            {"type": "transaction_source", "value": "salary"}
+        ]
+        action_type = 'fixed_amount'
+        amount = 50
+        success_msg = self.rule_page.submit_rule_with_conditions(rule_id, rule_name, trigger_type, conditions, action_type, amount)
+        self.assertIn('success', success_msg.lower())
+
+        # Step 2: Simulate deposit with balance 900, deposit 100, source 'salary' (should NOT execute transfer)
+        transfer_result_900 = self.rule_page.simulate_deposit_and_verify_transfer(balance=900, deposit=100, source='salary')
+        self.assertIn('not executed', transfer_result_900.lower())
+
+        # Step 3: Simulate deposit with balance 1200, deposit 100, source 'salary' (should execute transfer)
+        transfer_result_1200 = self.rule_page.simulate_deposit_and_verify_transfer(balance=1200, deposit=100, source='salary')
+        self.assertIn('executed', transfer_result_1200.lower())
+
+    # TC-FT-004: Error handling for missing trigger and unsupported action
+    def test_TC_FT_004_error_handling_for_missing_trigger_and_unsupported_action(self):
+        # Step 1: Submit rule with missing trigger type
+        rule_name = 'Missing Trigger Rule'
+        action_type = 'fixed_amount'
+        amount = 100
+        error_msg_missing_trigger = self.rule_page.submit_rule_missing_trigger_and_verify_error(rule_name, action_type, amount)
+        self.assertIn('missing', error_msg_missing_trigger.lower())
+        self.assertIn('trigger', error_msg_missing_trigger.lower())
+
+        # Step 2: Submit rule with unsupported action type
+        rule_id = 'RC004'
+        rule_name = 'Unsupported Action Rule'
+        trigger_type = 'specific_date'
+        unsupported_action_type = 'unknown_action'
+        error_msg_unsupported_action = self.rule_page.submit_rule_with_unsupported_action_and_verify_error(rule_id, rule_name, trigger_type, unsupported_action_type)
+        self.assertIn('unsupported', error_msg_unsupported_action.lower())
+        self.assertIn('action', error_msg_unsupported_action.lower())
+
 class TestTransferAPI(unittest.TestCase):
     def setUp(self):
         # Replace with actual API base URL and token
