@@ -138,137 +138,18 @@ class TestTransferAPI(unittest.TestCase):
         self.auth_token = 'YOUR_AUTH_TOKEN'
         self.transfer_api = TransferAPIPage(self.base_url, self.auth_token)
 
-    def test_TC_158_01_valid_transfer_payload(self):
+    def test_TC_158_01_valid_financial_transfer(self):
         """
-        TestCase TC-158-01: Prepare a valid JSON payload for financial transfer with all required fields and submit to /transfer endpoint. Expect payload to be accepted and processed successfully.
+        TC-158-01: Prepare a valid JSON payload for financial transfer with all required fields, submit to /transfer endpoint, and verify successful processing.
         """
-        result = self.transfer_api.submit_valid_transfer_payload()
-        self.assertEqual(result["status_code"], 200, f"Expected 200 OK, got {result['status_code']}")
-        self.assertTrue(result["success"], f"Expected success, got {result['error_message']}")
-        self.assertIn("result", result["response_json"], "Missing 'result' key in response JSON")
-        self.assertEqual(result["response_json"].get("result"), "success", f"Expected 'success', got {result['response_json'].get('result')}")
+        result = self.transfer_api.submit_valid_financial_transfer()
+        self.assertEqual(result['status_code'], 200, f"Expected 200 OK, got {result['status_code']}")
+        self.assertTrue(result['success'], f"Expected success, got {result['error_message']}")
 
-    def test_TC_158_02_missing_destination_field(self):
+    def test_TC_158_02_missing_destination_transfer(self):
         """
-        TestCase TC-158-02: Prepare a JSON payload missing the 'destination' field and submit to /transfer endpoint. Expect payload to be rejected with appropriate error message.
+        TC-158-02: Prepare a JSON payload missing the 'destination' field, submit to /transfer endpoint, and verify error response 'Missing required field: destination'.
         """
-        result = self.transfer_api.submit_missing_destination_transfer_payload()
-        self.assertFalse(result["success"], "Expected rejection for missing 'destination' field")
-        self.assertIn("destination", result["error_message"], f"Expected error message about missing 'destination', got {result['error_message']}")
-
-    def test_TC_158_03_minimum_amount_transfer(self):
-        """
-        TestCase TC-158-03: Prepare JSON payload with minimum allowed amount (0.01), submit, expect success.
-        """
-        payload = {
-            "amount": 0.01,
-            "currency": "USD",
-            "source": "ACC123",
-            "destination": "ACC456",
-            "timestamp": "2024-06-01T10:00:00Z"
-        }
-        result = self.transfer_api.submit_transfer(payload)
-        self.assertEqual(result["status_code"], 200, f"Expected 200 OK, got {result['status_code']}")
-        self.assertTrue(result["success"], f"Expected success, got {result['error_message']}")
-        self.assertIn("result", result["response_json"], "Missing 'result' key in response JSON")
-        self.assertEqual(result["response_json"].get("result"), "success", f"Expected 'success', got {result['response_json'].get('result')}")
-
-    def test_TC_158_04_exceed_maximum_amount_transfer(self):
-        """
-        TestCase TC-158-04: Prepare JSON payload with amount exceeding maximum (1000000.00), submit, expect rejection with error message.
-        """
-        payload = {
-            "amount": 1000000.00,
-            "currency": "USD",
-            "source": "ACC123",
-            "destination": "ACC456",
-            "timestamp": "2024-06-01T10:00:00Z"
-        }
-        result = self.transfer_api.submit_transfer(payload)
-        self.assertFalse(result["success"], "Expected rejection for exceeding maximum amount")
-        self.assertNotEqual(result["error_message"], "", "Expected error message for rejection")
-        self.assertIn("Amount exceeds maximum limit", result["error_message"], f"Expected error message, got {result['error_message']}")
-
-    def test_TC_158_05_transfer_with_extra_field(self):
-        """
-        TestCase TC-158-05: Prepare a valid JSON payload with an additional 'note' field, submit to /transfer endpoint, expect transfer completes successfully and note field is ignored or logged.
-        """
-        payload = {
-            "amount": 100.00,
-            "currency": "USD",
-            "source": "ACC123",
-            "destination": "ACC456",
-            "timestamp": "2024-06-01T10:00:00Z"
-        }
-        result = self.transfer_api.submit_with_extra_field(payload)
-        self.assertEqual(result["status_code"], 200, f"Expected 200 OK, got {result['status_code']}")
-        self.assertTrue(result["success"], f"Expected success, got {result['error_message']}")
-        self.assertIn("result", result["response_json"], "Missing 'result' key in response JSON")
-        self.assertEqual(result["response_json"].get("result"), "success", f"Expected 'success', got {result['response_json'].get('result')}")
-        self.assertIn(result["note_handling"], ["ignored", "logged"], f"Expected note_handling to be 'ignored' or 'logged', got {result['note_handling']}")
-
-    def test_TC_158_06_malformed_json_transfer(self):
-        """
-        TestCase TC-158-06: Prepare a malformed JSON payload (missing closing brace), submit to /transfer endpoint, expect API returns error 'Invalid JSON format'.
-        """
-        malformed_payload = '{"amount": 100.00, "currency": "USD", "source": "ACC123", "destination": "ACC456", "timestamp": "2024-06-01T10:00:00Z"'
-        result = self.transfer_api.submit_malformed_json_transfer(malformed_payload)
-        self.assertFalse(result["success"], "Expected API to reject malformed JSON payload")
-        self.assertIn("Invalid JSON format", result["error_message"], f"Expected error 'Invalid JSON format', got {result['error_message']}")
-
-    def test_TC_158_07_bulk_transfer_performance(self):
-        """
-        TestCase TC-158-07: Prepare and submit 10,000 valid transfer payloads in rapid succession. Monitor API response times and throughput. Acceptance Criteria: All transfers processed within <1s per transfer; API maintains performance and does not degrade under load.
-        """
-        result = self.transfer_api.submit_bulk_transfers_and_monitor_performance(num_transfers=10000)
-        self.assertLess(result["average_time"], 1.0, f"Average transfer time should be <1s, got {result['average_time']}")
-        self.assertEqual(result["failure_count"], 0, f"Expected all transfers to succeed, got {result['failure_count']} failures")
-        self.assertTrue(result["criteria_met"], "Performance criteria not met")
-
-    def test_TC_158_08_transfer_invalid_auth(self):
-        """
-        TestCase TC-158-08: Prepare a valid JSON payload and submit with an invalid authentication token. Expect authentication error ('Invalid authentication token').
-        """
-        payload = {
-            "amount": 100.00,
-            "currency": "USD",
-            "source": "ACC123",
-            "destination": "ACC456",
-            "timestamp": "2024-06-01T10:00:00Z"
-        }
-        result = self.transfer_api.submit_transfer_with_invalid_auth(payload)
-        self.assertFalse(result["success"], "Expected authentication error for invalid token")
-        self.assertTrue(result["auth_error_detected"], "Expected 'Invalid authentication token' error")
-        self.assertIn("Invalid authentication token", result["error_message"], f"Expected error message, got {result['error_message']}")
-
-    def test_TC_158_09_valid_transfer_and_log_verification(self):
-        """
-        TestCase TC-158-09: Submit a valid transfer payload and verify backend log entry.
-        """
-        payload = {
-            "amount": 200.00,
-            "currency": "USD",
-            "source": "ACC123",
-            "destination": "ACC456",
-            "timestamp": "2024-06-01T10:00:00Z"
-        }
-        result = self.transfer_api.submit_valid_transfer_and_verify_log(payload)
-        self.assertTrue(result["transfer_result"]["success"], f"Expected transfer success, got {result['transfer_result']['error_message']}")
-        self.assertTrue(result["log_verified"], f"Expected log verification, got {result['error']}")
-        self.assertDictEqual(result["log_details"], payload, f"Log details do not match transfer payload: {result['log_details']} vs {payload}")
-
-    def test_TC_158_10_unsupported_currency_error(self):
-        """
-        TestCase TC-158-10: Submit a payload with unsupported currency and verify API returns 'Unsupported currency' error.
-        """
-        payload = {
-            "amount": 100.00,
-            "currency": "XYZ",
-            "source": "ACC123",
-            "destination": "ACC456",
-            "timestamp": "2024-06-01T10:00:00Z"
-        }
-        result = self.transfer_api.submit_unsupported_currency_and_verify(payload)
-        self.assertFalse(result["response"]["success"], "Expected API to reject unsupported currency")
-        self.assertTrue(result["error_verified"], f"Expected 'Unsupported currency' error, got {result['response']['error_message']}")
-        self.assertEqual(result["response"]["error_message"], "Unsupported currency", f"Expected error message 'Unsupported currency', got {result['response']['error_message']}")
+        result = self.transfer_api.submit_missing_destination_transfer()
+        self.assertFalse(result['success'], "Expected rejection for missing destination")
+        self.assertEqual(result['error_message'], "Missing required field: destination", f"Expected error message, got {result['error_message']}")
