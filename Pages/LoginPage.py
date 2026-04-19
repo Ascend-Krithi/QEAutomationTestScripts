@@ -2,7 +2,7 @@
 LoginPage.py
 
 Selenium PageClass for Login Functionality.
-Covers test cases: TC_Login_01 (valid login), TC_Login_02 (invalid login), TC_Login_03 (missing email), TC_Login_04 (missing password), TC_Login_08 (Forgot Password), TC_Login_09 (Maximum length input).
+Covers test cases: TC_LOGIN_001 (valid login), TC_LOGIN_002 (invalid login), TC_Login_03 (missing email), TC_Login_04 (missing password), TC_Login_08 (Forgot Password), TC_Login_09 (Maximum length input).
 Implements navigation, credential entry, login action, forgot password flow, and validation of outcomes.
 
 Author: Automation Orchestration Agent
@@ -138,18 +138,18 @@ class LoginPage:
 Documentation:
 
 Executive Summary:
-This PageClass automates login functionality, including TC_Login_01 (valid login), TC_Login_02 (invalid login), TC_Login_03 (missing email), TC_Login_04 (missing password), TC_Login_08 (Forgot Password flow), and TC_Login_09 (Maximum length input validation). Robust methods for navigation, credential entry, login action, forgot password flow, and outcome validation ensure strict code integrity and test coverage.
+This PageClass automates login functionality, including TC_LOGIN_001 (valid login), TC_LOGIN_002 (invalid login), TC_Login_03 (missing email), TC_Login_04 (missing password), TC_Login_08 (Forgot Password flow), and TC_Login_09 (Maximum length input validation). Robust methods for navigation, credential entry, login action, forgot password flow, and outcome validation ensure strict code integrity and test coverage.
 
 Detailed Analysis:
+- TC_LOGIN_001: validate_successful_login() covers valid login scenario.
 - TC_LOGIN_002: validate_invalid_login() covers invalid credentials scenario.
-- TC_LOGIN_003: validate_login_empty_fields() covers empty fields scenario.
 - Composite methods encapsulate test case logic for maintainability and downstream automation.
 
 Implementation Guide:
 - Place this file in the Pages folder.
 - Instantiate LoginPage with a Selenium WebDriver.
+- Use validate_successful_login() for TC_LOGIN_001.
 - Use validate_invalid_login() for TC_LOGIN_002.
-- Use validate_login_empty_fields() for TC_LOGIN_003.
 - Adjust locators as needed for your application’s UI elements.
 
 Quality Assurance Report:
